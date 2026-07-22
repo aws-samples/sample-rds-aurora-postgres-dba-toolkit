@@ -10,7 +10,7 @@
 #8. This script works well for PostgreSQL 13 and newer versions. 
 #################
 # Author: Vivek Singh, Principal Postgres Specialist Technical Account Manager, AWS
-# V-24 : JUL7 2024
+# V-25 : MAY 8 2026
 #################
 clear
 echo -n -e "RDS PostgreSQL instance endpoint URL or Aurora PostgreSQL Writer endpoint URL: "
