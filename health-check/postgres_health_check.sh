@@ -9,7 +9,7 @@
 #7. Share the report with your AWS Technical Account Manager.
 #8. This script works well for PostgreSQL 13 and newer versions. 
 #################
-# Author: Vivek Singh, Principal Postgres Specialist Technical Account Manager, AWS
+# Author: Vivek Singh (https://www.linkedin.com/in/vivek-singh-4149aa19/), Principal Postgres Specialist Technical Account Manager, AWS
 # V-25 : MAY 8 2026
 #################
 clear
