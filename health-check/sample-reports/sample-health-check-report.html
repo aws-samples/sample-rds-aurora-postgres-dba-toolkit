@@ -1,0 +1,1674 @@
+<!DOCTYPE HTML PUBLIC -//W3C//DTD HTML 4.01 Transitional//EN http://www.w3.org/TR/html4/loose.dtd>
+<html>
+<link rel=stylesheet href=https://unpkg.com/purecss@0.6.2/build/pure-min.css>
+<body style=font-family:Verdana bgcolor=#F8F8F8>
+<fieldset>
+<table><tr> <td width=20></td> <td>
+<h1><font face=verdana color=#0099cc><center><u>PostgreSQL Health Check Report For IUSA</u></center></font></h1></color>
+</fieldset>
+<br>
+<font face=verdana color=#ff6600>Date:</font> Jul 02, 2026 
+<br>
+<br>
+<font face=verdana color=#ff6600>Instance Details:  </font>
+<br>
+Postgres Endpoint URL: pg15.cjmh5xirlcl7.us-west-2.rds.amazonaws.com
+<br>
+Database Name: postgres
+<br>
+PostgreSQL Engine Version: 
+15.17
+<br>
+Maximum Connections :
+5000
+<br>
+Current Total Connections: 
+9
+<br>
+Idle Connections :      2 
+            <br>DB Instance Class: db.m6g.12xlarge
+            <br>Current Storage (GB): 300
+           <br>Backup Retention Period: 10
+            <br>Multi AZ Enabled?: false
+            <br>Publicly Accessible: false
+            <br>Storage Type: GP2
+            <br>EM Monitoring Interval: 60
+            <br>Storage Autoscaling Limit (GB): 1000
+<br>
+<br>
+<font face=verdana color=#ff6600>PostgreSQL Health Score Card: </font>
+<table border=1 cellpadding=3 cellspacing=0>
+  <tr>
+    <td><font face=verdana color=#000000><b>Item</b></font></td>
+    <td><font face=verdana color=#000000><b>Description</b></font></td>
+	<td><font face=verdana color=#000000><b>Current score</b></font></td>
+    <td><font face=verdana color=#000000><b>Max score</b></font></td>
+  </tr>
+<tr>
+    <td>Current major version</td>
+    <td>PostgreSQL version of this instance is  15.17 . Current highest major version supported for
+   RDS PostgreSQL
+is 18.</td>
+    <td>0</td>
+    <td>5</td>
+  </tr>
+<tr>
+    <td>Current minor version</td>
+    <td>PostgreSQL minor versions typically include bug fixes and security fixes, but no functional changes. Highest minor version for 
+    RDS PostgreSQL   15 is 15.18. </td>
+    <td>0</td>
+    <td>5</td>
+  </tr>
+<tr>
+    <td>Storage Encrypted</td>
+    <td>RDS Storage Encrypted encrypts data stored at rest in the underlying storage of database instances.</td>
+    <td>5</td>
+    <td>5</td>
+  </tr>
+<tr>
+    <td>RDS Extended Support</td>
+    <td>On the RDS end of standard support date, Amazon RDS automatically enrolls databases in RDS Extended Support at an additional cost.</td>
+    <td>5</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Monitoring Interval</td>
+    <td>Default value is 60 seconds. Lower value helps troubleshooting the issues better.</td>
+    <td>0</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Performance Insights Enabled</td>
+    <td>RDS Performance Insights is a database performance tuning and monitoring feature that helps quickly assess the load on database, and determine when and where to take action.</td>
+    <td>5</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Performance Insights Retention Period</td>
+    <td>Default value is 7 days. Higher value helps troublshooting issues in past.</td>
+    <td>0</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>DB Instance Class</td>
+    <td>DB instance types M4, R4, and T2 are no more supported for new database instances.</td>
+    <td>5</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Multi AZ</td>
+    <td>RDS Multi-AZ is a feature that allows to deploy a database across multiple availability zones (AZs), inclreasing high availability.</td>
+    <td>0</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Deletion Protection</td>
+    <td>Deletion protection is a security feature RDS that prevents users from accidentally or intentionally deleting database instances or clusters.</td>
+    <td>0</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Publicly Accessible</td>
+    <td>A publicly accessible RDS instance is one that has a public IP address and an open security group, allowing anyone on the internet to connect to it.</td>
+    <td>5</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Parameter Group</td>
+    <td>RDS Parameter Group is a collection of parameters that control the configuration and behavior of an RDS instance or cluster.</td>
+    <td>5</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Parameter work_mem</td>
+    <td>Checks if parameter work_mem is set at default value 4MB.</td>
+    <td>0</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Parameter idle_in_transaction_session_timeout</td>
+    <td>Checks if parameter idle_in_transaction_session_timeout is set at default value.</td>
+    <td>0</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Parameter log_temp_files</td>
+    <td>Checks if parameter log_temp_files is emabled or not.</td>
+    <td>5</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Parameter autovacuum</td>
+    <td>Checks if parameter autovacuum is turned on or not.</td>
+    <td>5</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Parameter log_min_duration_statement</td>
+    <td>Checks if parameter log_min_duration_statement is emabled or not.</td>
+    <td>5</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Parameter log_statement</td>
+    <td>Checks if parameter log_statement is set to ALL or not.</td>
+    <td>5</td>
+    <td>5</td>
+  </tr>
+ <tr>
+    <td>Parameter log_autovacuum_min_duration</td>
+    <td>Checks if parameter log_autovacuum_min_duration is enabled or not.</td>
+    <td>5</td>
+    <td>5</td>
+  </tr>
+<tr>
+    <td>Shared_buffers</td>
+    <td>Parameter Checks if parameter Shared_buffers is set at lower than default value.</td>
+    <td>0</td>
+    <td>5</td>
+  </tr>
+<tr>
+    <td><font face=verdana color=#000000><b>Total points</b></font></td>
+    <td></td>
+    <td><font face=verdana color=#000000><b>55</b></font></td>
+    <td><font face=verdana color=#000000><b>100</b></font></td>
+  </tr>
+</table>
+<br>
+<font face=verdana color=#ff6600>Infrastructure Metrics (CloudWatch): </font>
+<br>
+<table border=1 cellpadding=3 cellspacing=0>
+  <tr>
+    <td><font face=verdana color=#000000><b>Metric</b></font></td>
+    <td><font face=verdana color=#000000><b>Last 1 Day (Avg)</b></font></td>
+    <td><font face=verdana color=#000000><b>Last 15 Days (Avg)</b></font></td>
+    <td><font face=verdana color=#000000><b>Last 35 Days (Avg)</b></font></td>
+  </tr>
+  <tr>
+    <td>CPU Utilization (%)</td>
+    <td>0.21 %</td>
+    <td>0.21 %</td>
+    <td>0.26 %</td>
+  </tr>
+  <tr>
+    <td>Freeable Memory (MB)</td>
+    <td>135152 MB</td>
+    <td>135127 MB</td>
+    <td>135078 MB</td>
+  </tr>
+  <tr>
+    <td>Read IOPS</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>Write IOPS</td>
+    <td>3</td>
+    <td>3</td>
+    <td>4</td>
+  </tr>
+  <tr>
+    <td>Database Connections</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+  </tr>
+</table>
+<font face=verdana color=#0099cc>Note: These are average values from CloudWatch metrics. For CPU spikes and memory pressure events, check CloudWatch dashboards or Performance Insights for detailed time-series data.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Extensions Installed: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">extension_name</th>
+    <th align="center">version</th>
+    <th align="center">schema</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">my_password_check_rules</td>
+    <td align="left">1.0</td>
+    <td align="left">public</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">pg_buffercache</td>
+    <td align="left">1.3</td>
+    <td align="left">public</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">pg_cron</td>
+    <td align="left">1.4-1</td>
+    <td align="left">public</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">pg_prewarm</td>
+    <td align="left">1.2</td>
+    <td align="left">public</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">pg_stat_statements</td>
+    <td align="left">1.10</td>
+    <td align="left">public</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">pg_tle</td>
+    <td align="left">1.0.1</td>
+    <td align="left">pgtle</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">pgstattuple</td>
+    <td align="left">1.5</td>
+    <td align="left">public</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">plpgsql</td>
+    <td align="left">1.0</td>
+    <td align="left">pg_catalog</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">plrust</td>
+    <td align="left">1.0</td>
+    <td align="left">plrust</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">plv8</td>
+    <td align="left">3.1.4</td>
+    <td align="left">pg_catalog</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Consider installing <a href="https://www.postgresql.org/docs/current/pgstatstatements.html" target="_blank">pg_stat_statements</a> for query performance analysis, <a href="https://www.postgresql.org/docs/current/pgbuffercache.html" target="_blank">pg_buffercache</a> for buffer cache analysis, and <a href="https://www.postgresql.org/docs/current/pgprewarm.html" target="_blank">pg_prewarm</a> for buffer cache warming after restart.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Total Size of Log Files:  </font>
+10701200 Bytes
+: 0 GB
+<br>
+<font face=verdana color=#0099cc>Note: In RDS PostgreSQL, database log files occupy EBS volume storage. Large size of log files can cause STORAGE FULL issue. If database logs are consuming large space, consider lowering rds.log_retention_period to up to 1 day. Default is 3 days. Have an automated job (such as Lambda) to back up the log file externally as soon as they are created. Use <a href=https://www.postgresql.org/about/news/pgbadger-v114-released-2120/ target=_blank>pgBadger</a> to analyze these log files.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Maximum Used Transaction IDs:</font> 2,534,961
+<br>
+<font face=verdana color=#0099cc>Note: Set up <a href=https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/creating_alarms.html target=_blank>CloudWatch alarm</a> for 'MaximumUsedTransactionIDs' at around 1B value.  The value of ~2 billion can cause <a href=https://www.postgresql.org/docs/current/routine-vacuuming.html#VACUUM-FOR-WRAPAROUND target=_blank>Transaction ID Wraparound failures</a> issues. Please visit this <a href=https://aws.amazon.com/blogs/database/implement-an-early-warning-system-for-transaction-id-wraparound-in-amazon-rds-for-postgresql/ target=_blank>AWS blog</a> for more details on creating this alarm.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Total Size of All Databases:</font> 250 GB
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 5 Databases Size (7):</font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">db_name</th>
+    <th align="center">pretty_db_size</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">bench</td>
+    <td align="left">240 GB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres_air</td>
+    <td align="left">7080 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="left">3100 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">7927 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">test2</td>
+    <td align="left">7799 kB</td>
+  </tr>
+</table> 
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 10 Biggest Tables (20): </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">table_schema</th>
+    <th align="center">table_name</th>
+    <th align="center">total_size</th>
+    <th align="center">data_size</th>
+    <th align="center">external_size</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">t_random</td>
+    <td align="left">1693 MB</td>
+    <td align="left">1693 MB</td>
+    <td align="left">472 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">vectors</td>
+    <td align="left">embeddings</td>
+    <td align="left">797 MB</td>
+    <td align="left">5096 kB</td>
+    <td align="left">792 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">t1</td>
+    <td align="left">346 MB</td>
+    <td align="left">346 MB</td>
+    <td align="left">120 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">target_table</td>
+    <td align="left">141 MB</td>
+    <td align="left">93 MB</td>
+    <td align="left">48 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">source_table</td>
+    <td align="left">102 MB</td>
+    <td align="left">68 MB</td>
+    <td align="left">34 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">source_table_temp</td>
+    <td align="left">8688 kB</td>
+    <td align="left">8656 kB</td>
+    <td align="left">32 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">cron</td>
+    <td align="left">job_run_details</td>
+    <td align="left">2128 kB</td>
+    <td align="left">1968 kB</td>
+    <td align="left">160 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">cron</td>
+    <td align="left">job</td>
+    <td align="left">80 kB</td>
+    <td align="left">8192 bytes</td>
+    <td align="left">72 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">table2</td>
+    <td align="left">72 kB</td>
+    <td align="left">40 kB</td>
+    <td align="left">32 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">table1</td>
+    <td align="left">72 kB</td>
+    <td align="left">40 kB</td>
+    <td align="left">32 kB</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Looking at the access pattern, consider <a href=https://www.postgresql.org/docs/current/ddl-partitioning.html target=_blank>partitioning</a> large tables for improved query performance, reducing IOs, easier data purge and better autovacuum performance.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Tables Without Primary Key: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">schema_name</th>
+    <th align="center">table_name</th>
+    <th align="center">table_size</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">t_random</td>
+    <td align="left">1693 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">t1</td>
+    <td align="left">346 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">source_table_temp</td>
+    <td align="left">8688 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">table1</td>
+    <td align="left">72 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">table2</td>
+    <td align="left">72 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">password_check</td>
+    <td align="left">bad_passwords</td>
+    <td align="left">64 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">cars</td>
+    <td align="left">48 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">station_1</td>
+    <td align="left">48 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">recent_transactions</td>
+    <td align="left">40 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">customer_account</td>
+    <td align="left">40 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">cust_t</td>
+    <td align="left">8192 bytes</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">t12</td>
+    <td align="left">8192 bytes</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">t11</td>
+    <td align="left">8192 bytes</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Tables without a primary key can cause issues with logical replication, and may result in full table scans for UPDATE/DELETE operations. Consider adding primary keys to these tables.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Duplicate Indexes (0): </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">size</th>
+    <th align="center">idx1</th>
+    <th align="center">idx2</th>
+    <th align="center">idx3</th>
+    <th align="center">idx4</th>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: For better write performance, saving write IOs, saving storage, look at the index definitions and consider dropping duplicate indexes.
+<br>
+<br>
+<font face=verdana color=#ff6600>Rarely Used Indexes: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">schemaname</th>
+    <th align="center">tablename</th>
+    <th align="center">indexname</th>
+    <th align="center">index_scans</th>
+    <th align="center">index_size</th>
+    <th align="center">table_size</th>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: For better write performance, saving write IOs, saving storage, look at the index definitions and consider dropping rarely used indexes.
+<br>
+<br>
+<font face=verdana color=#ff6600>Invalid Indexes: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">schema_name</th>
+    <th align="center">index_name</th>
+    <th align="center">table_name</th>
+    <th align="center">index_size</th>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Invalid indexes are left behind from failed CREATE INDEX CONCURRENTLY operations. They consume storage but are never used for queries. Drop and recreate them.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 5 Database Age: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">datname</th>
+    <th align="center">age</th>
+    <th align="center">remaining</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres_air</td>
+    <td align="right">2534961</td>
+    <td align="right">2143948687</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">template0</td>
+    <td align="right">2534961</td>
+    <td align="right">2143948687</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">template1</td>
+    <td align="right">2534961</td>
+    <td align="right">2143948687</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">test2</td>
+    <td align="right">2534961</td>
+    <td align="right">2143948687</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="right">2534961</td>
+    <td align="right">2143948687</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Please visit <a href=https://www.postgresql.org/docs/current/routine-vacuuming.html target=_blank>PostgreSQL doc</a> for more details on database age.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 5 Table age: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">schema_name</th>
+    <th align="center">table_name</th>
+    <th align="center">age</th>
+    <th align="center">remaining</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">vectors</td>
+    <td align="left">embeddings</td>
+    <td align="right">1385491</td>
+    <td align="right">2145098157</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">customer_account</td>
+    <td align="right">1385491</td>
+    <td align="right">2145098157</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">recent_transactions</td>
+    <td align="right">1385491</td>
+    <td align="right">2145098157</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">pgtle</td>
+    <td align="left">feature_info</td>
+    <td align="right">1385490</td>
+    <td align="right">2145098158</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">station_main</td>
+    <td align="right">1385490</td>
+    <td align="right">2145098158</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Please visit <a href=https://www.postgresql.org/docs/current/routine-vacuuming.html target=_blank>PostgreSQL doc</a> for more details on table age. Consider VACUUM FREEZE on the highly aged tables.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Sequences Nearing Exhaustion (>30% used): </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">schema_name</th>
+    <th align="center">sequence_name</th>
+    <th align="center">data_type</th>
+    <th align="center">last_value</th>
+    <th align="center">max_value</th>
+    <th align="center">pct_used</th>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Sequences using int4 (integer) data type have a max value of ~2.1 billion. If a sequence is approaching exhaustion, consider altering it to use bigint (int8) to avoid insert failures.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 10 Most Bloated Tables: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">current_database</th>
+    <th align="center">schemaname</th>
+    <th align="center">tablename</th>
+    <th align="center">tbloat</th>
+    <th align="center">wastedbytes</th>
+    <th align="center">iname</th>
+    <th align="center">ibloat</th>
+    <th align="center">wastedibytes</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="left">public</td>
+    <td align="left">target_table</td>
+    <td align="right">2.0</td>
+    <td align="right">49299456</td>
+    <td align="left">target_table_pkey</td>
+    <td align="right">1.8</td>
+    <td align="right">21897216</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="left">public</td>
+    <td align="left">t1</td>
+    <td align="right">1.1</td>
+    <td align="right">41689088</td>
+    <td align="left">?</td>
+    <td align="right">0.0</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="left">public</td>
+    <td align="left">source_table</td>
+    <td align="right">1.2</td>
+    <td align="right">10706944</td>
+    <td align="left">source_table_pkey</td>
+    <td align="right">1.2</td>
+    <td align="right">7086080</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="left">public</td>
+    <td align="left">source_table_temp</td>
+    <td align="right">1.1</td>
+    <td align="right">843776</td>
+    <td align="left">?</td>
+    <td align="right">0.0</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="left">public</td>
+    <td align="left">t_random</td>
+    <td align="right">1.0</td>
+    <td align="right">499712</td>
+    <td align="left">?</td>
+    <td align="right">0.0</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="left">cron</td>
+    <td align="left">job_run_details</td>
+    <td align="right">1.1</td>
+    <td align="right">163840</td>
+    <td align="left">job_run_details_pkey</td>
+    <td align="right">0.1</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="left">pg_catalog</td>
+    <td align="left">pg_proc</td>
+    <td align="right">1.0</td>
+    <td align="right">40960</td>
+    <td align="left">pg_proc_proname_args_nsp_index</td>
+    <td align="right">0.4</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="left">pg_catalog</td>
+    <td align="left">pg_proc</td>
+    <td align="right">1.0</td>
+    <td align="right">40960</td>
+    <td align="left">pg_proc_oid_index</td>
+    <td align="right">0.1</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="left">pg_catalog</td>
+    <td align="left">pg_rewrite</td>
+    <td align="right">1.2</td>
+    <td align="right">24576</td>
+    <td align="left">pg_rewrite_rel_rulename_index</td>
+    <td align="right">0.2</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="left">pg_catalog</td>
+    <td align="left">pg_rewrite</td>
+    <td align="right">1.2</td>
+    <td align="right">24576</td>
+    <td align="left">pg_rewrite_oid_index</td>
+    <td align="right">0.2</td>
+    <td align="right">0</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Consider <a href=https://www.postgresql.org/docs/current/sql-vacuum.html target=_blank>VACUUM</a> highly bloated tables during off peak hours. Use Aurora/RDS PostgreSQL supported <a href=https://www.postgresql.org/docs/current/runtime-config-autovacuum.html target=_blank>pg_cron</a> extension to schedule manual VACUUM job. Consider recreating bloated indexes. Use <a href=https://www.postgresql.org/docs/current/runtime-config-autovacuum.html target=_blank>pg_repack</a> extension to reclaim space.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 10 Biggest Tables Last Vacuumed: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">schemaname</th>
+    <th align="center">relname</th>
+    <th align="center">last_vacuum</th>
+    <th align="center">last_autovacuum</th>
+    <th align="center">last_analyze</th>
+    <th align="center">last_autoanalyze</th>
+    <th align="center">table_total_size</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">t_random</td>
+    <td align="left">2024-10-04</td>
+    <td align="left">&nbsp; </td>
+    <td align="left">&nbsp; </td>
+    <td align="left">&nbsp; </td>
+    <td align="left">1693 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">vectors</td>
+    <td align="left">embeddings</td>
+    <td align="left">2024-10-04</td>
+    <td align="left">2023-06-18</td>
+    <td align="left">&nbsp; </td>
+    <td align="left">2023-06-18</td>
+    <td align="left">797 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">t1</td>
+    <td align="left">2024-10-04</td>
+    <td align="left">2023-07-31</td>
+    <td align="left">&nbsp; </td>
+    <td align="left">2023-07-31</td>
+    <td align="left">346 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">target_table</td>
+    <td align="left">2024-10-04</td>
+    <td align="left">2023-08-11</td>
+    <td align="left">2025-03-05</td>
+    <td align="left">2023-08-11</td>
+    <td align="left">141 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">source_table</td>
+    <td align="left">2024-10-04</td>
+    <td align="left">2023-08-11</td>
+    <td align="left">&nbsp; </td>
+    <td align="left">2023-08-11</td>
+    <td align="left">102 MB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">source_table_temp</td>
+    <td align="left">2024-10-04</td>
+    <td align="left">2023-08-11</td>
+    <td align="left">&nbsp; </td>
+    <td align="left">2023-08-11</td>
+    <td align="left">8688 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">cron</td>
+    <td align="left">job_run_details</td>
+    <td align="left">2024-10-04</td>
+    <td align="left">2023-10-16</td>
+    <td align="left">&nbsp; </td>
+    <td align="left">2023-10-16</td>
+    <td align="left">2128 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">cron</td>
+    <td align="left">job</td>
+    <td align="left">2024-10-04</td>
+    <td align="left">&nbsp; </td>
+    <td align="left">&nbsp; </td>
+    <td align="left">&nbsp; </td>
+    <td align="left">80 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">table1</td>
+    <td align="left">2024-10-04</td>
+    <td align="left">&nbsp; </td>
+    <td align="left">&nbsp; </td>
+    <td align="left">2023-07-31</td>
+    <td align="left">72 kB</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">public</td>
+    <td align="left">table2</td>
+    <td align="left">2024-10-04</td>
+    <td align="left">&nbsp; </td>
+    <td align="left">&nbsp; </td>
+    <td align="left">2023-07-31</td>
+    <td align="left">72 kB</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: If large tables are not autovacuumed recently, consider logging autovacuum activities. Consider VACCUM these tables during off peak hours. </font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 10 UPDATE/DELETE Tables: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">relname</th>
+    <th align="center">update_percent</th>
+    <th align="center">delete_percent</th>
+    <th align="center">insert_percent</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">t_random</td>
+    <td align="right">100.00</td>
+    <td align="right">0.00</td>
+    <td align="right">0.00</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">target_table</td>
+    <td align="right">45.51</td>
+    <td align="right">0.00</td>
+    <td align="right">54.49</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">source_table</td>
+    <td align="right">25.00</td>
+    <td align="right">0.00</td>
+    <td align="right">75.00</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">station_main</td>
+    <td align="right">98.80</td>
+    <td align="right">0.00</td>
+    <td align="right">1.20</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">job_run_details</td>
+    <td align="right">69.77</td>
+    <td align="right">0.00</td>
+    <td align="right">30.23</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">t11</td>
+    <td align="right">60.00</td>
+    <td align="right">0.00</td>
+    <td align="right">40.00</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">cars</td>
+    <td align="right">0.00</td>
+    <td align="right">37.50</td>
+    <td align="right">62.50</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">t12</td>
+    <td align="right">66.67</td>
+    <td align="right">0.00</td>
+    <td align="right">33.33</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">station_1</td>
+    <td align="right">14.29</td>
+    <td align="right">0.00</td>
+    <td align="right">85.71</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">table2</td>
+    <td align="right">0.00</td>
+    <td align="right">0.00</td>
+    <td align="right">100.00</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: For better VACUUM and ANALYZE performance on tables with high bloat and high UPDATE/DELETE operations, modify autovacuum parameters on table level. Changing parameters on instance level will impact all tables in the databases.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600><a href=https://www.postgresql.org/docs/current/runtime-config-autovacuum.html target=_blank>Vacuum</a> Parameters: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">name</th>
+    <th align="center">setting</th>
+    <th align="center">source</th>
+    <th align="center">context</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum</td>
+    <td align="left">on</td>
+    <td align="left">default</td>
+    <td align="left">sighup</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_analyze_scale_factor</td>
+    <td align="left">0.05</td>
+    <td align="left">configuration file</td>
+    <td align="left">sighup</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_analyze_threshold</td>
+    <td align="left">50</td>
+    <td align="left">default</td>
+    <td align="left">sighup</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_freeze_max_age</td>
+    <td align="left">200000000</td>
+    <td align="left">default</td>
+    <td align="left">postmaster</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_max_workers</td>
+    <td align="left">3</td>
+    <td align="left">configuration file</td>
+    <td align="left">postmaster</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_multixact_freeze_max_age</td>
+    <td align="left">400000000</td>
+    <td align="left">default</td>
+    <td align="left">postmaster</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_naptime</td>
+    <td align="left">15</td>
+    <td align="left">configuration file</td>
+    <td align="left">sighup</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_vacuum_cost_delay</td>
+    <td align="left">2</td>
+    <td align="left">default</td>
+    <td align="left">sighup</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_vacuum_cost_limit</td>
+    <td align="left">1800</td>
+    <td align="left">configuration file</td>
+    <td align="left">sighup</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_vacuum_insert_scale_factor</td>
+    <td align="left">0.2</td>
+    <td align="left">default</td>
+    <td align="left">sighup</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_vacuum_insert_threshold</td>
+    <td align="left">1000</td>
+    <td align="left">default</td>
+    <td align="left">sighup</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_vacuum_scale_factor</td>
+    <td align="left">0.1</td>
+    <td align="left">configuration file</td>
+    <td align="left">sighup</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_vacuum_threshold</td>
+    <td align="left">50</td>
+    <td align="left">default</td>
+    <td align="left">sighup</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">autovacuum_work_mem</td>
+    <td align="left">6063291</td>
+    <td align="left">configuration file</td>
+    <td align="left">sighup</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Please visit <a href=https://aws.amazon.com/blogs/database/understanding-autovacuum-in-amazon-rds-for-postgresql-environments/ target=_blank>AWS blog</a>  for understanding autovacuum in Aurora/ RDS PostgreSQL enviroments and, this <a href=https://aws.amazon.com/blogs/database/a-case-study-of-tuning-autovacuum-in-amazon-rds-for-postgresql/ target=_blank>AWS blog</a> for autovacuum parameter tuning. Modify parameter rds.force_autovacuum_logging_level parameter to warning and set the log_autovacuum_min_duration parameter to a value from 1,000 to 5,000 milliseconds to log autovacuum activites.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Key PostgreSQL Parameters: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">name</th>
+    <th align="center">setting</th>
+    <th align="center">source</th>
+    <th align="center">short_desc</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">checkpoint_timeout</td>
+    <td align="left">300</td>
+    <td align="left">default</td>
+    <td align="left">Sets the maximum time between automatic WAL checkpoints.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">default_statistics_target</td>
+    <td align="left">100</td>
+    <td align="left">default</td>
+    <td align="left">Sets the default statistics target.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">hot_standby_feedback</td>
+    <td align="left">off</td>
+    <td align="left">default</td>
+    <td align="left">Allows feedback from a hot standby to the primary that will avoid query conflicts.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">maintenance_work_mem</td>
+    <td align="left">3180743</td>
+    <td align="left">configuration file</td>
+    <td align="left">Sets the maximum memory to be used for maintenance operations.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">max_connections</td>
+    <td align="left">5000</td>
+    <td align="left">configuration file</td>
+    <td align="left">Sets the maximum number of concurrent connections.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">max_wal_size</td>
+    <td align="left">2048</td>
+    <td align="left">configuration file</td>
+    <td align="left">Sets the WAL size that triggers a checkpoint.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">random_page_cost</td>
+    <td align="left">4</td>
+    <td align="left">default</td>
+    <td align="left">Sets the planner's estimate of the cost of a nonsequentially fetched disk page.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rds.logical_replication</td>
+    <td align="left">off</td>
+    <td align="left">configuration file</td>
+    <td align="left">Enables logical decoding.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">shared_buffers</td>
+    <td align="left">6063291</td>
+    <td align="left">configuration file</td>
+    <td align="left">Sets the number of shared memory buffers used by the server.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">work_mem</td>
+    <td align="left">4096</td>
+    <td align="left">default</td>
+    <td align="left">Sets the maximum memory to be used for query workspaces.</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Consider increaswing work_mem (default value 4MB) for better performance of complex sorting/hashing. Consider increasing maintenance_work_mem for better performance on maintenance tasks such as VACUUM, RESTORE, CREATE INDEX, ADD FOREIGN KEY. Shared_buffers is 46 GB and 23% of total RAM. If working data set is bigger than shared_buffers, modify size by using extension <a href=https://www.postgresql.org/docs/current/pgbuffercache.html target=_blank>pg_buffercache</a> Lower than default value can cause high Read IOs and performance impact of read workloads. Watch closely  CloudWatch metric FreeableMemory while changing memory paramters.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600><a href=https://www.postgresql.org/docs/current/runtime-config-logging.html target=_blank>Logging</a> Parameters: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">name</th>
+    <th align="center">setting</th>
+    <th align="center">short_desc</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">log_autovacuum_min_duration</td>
+    <td align="left">1000</td>
+    <td align="left">Sets the minimum execution time above which autovacuum actions will be logged.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">log_checkpoints</td>
+    <td align="left">on</td>
+    <td align="left">Logs each checkpoint.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">log_connections</td>
+    <td align="left">off</td>
+    <td align="left">Logs each successful connection.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">log_disconnections</td>
+    <td align="left">off</td>
+    <td align="left">Logs end of a session, including duration.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">log_min_duration_statement</td>
+    <td align="left">500</td>
+    <td align="left">Sets the minimum execution time above which all statements will be logged.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">log_statement</td>
+    <td align="left">none</td>
+    <td align="left">Sets the type of statements logged.</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">log_temp_files</td>
+    <td align="left">4000</td>
+    <td align="left">Log the use of temporary files larger than this number of kilobytes.</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Consider enabling log_min_duration_statement to log slow running queries. Value of 5000 logs queries running more than for 5 seconds. Enabling 'log_statement' paramter logs none (off), ddl, mod, or all statements). Verbose logging can increase the log file sizes. Please visit this <a href=https://aws.amazon.com/blogs/database/working-with-rds-and-aurora-postgresql-logs-part-1/ target=_blank>AWS blog</a> for more details on working with RDS/Aurora logs, and this <a href=https://aws.amazon.com/blogs/database/part-2-audit-aurora-postgresql-databases-using-database-activity-streams-and-pgaudit/?nc1=b_nrp target=_blank>AWS blog</a> for more details on Aurora PostgreSQL <a href=https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/DBActivityStreams.Overview.html target=_blank>'Database Activity Streams'</a> and <a href=https://aws.amazon.com/premiumsupport/knowledge-center/rds-postgresql-pgaudit/ target=_blank>pgAudit</a>. Enable log_temp_files to log temporary files names and sizes.</font>
+<br>
+
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 10 Read IO Tables: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">relname</th>
+    <th align="center">hit_percent</th>
+    <th align="center">heap_blks_hit</th>
+    <th align="center">heap_blks_read</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">t_random</td>
+    <td align="right">99.61</td>
+    <td align="right">66308033</td>
+    <td align="right">258390</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">target_table</td>
+    <td align="right">99.26</td>
+    <td align="right">4524794</td>
+    <td align="right">33641</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">source_table</td>
+    <td align="right">98.32</td>
+    <td align="right">1978153</td>
+    <td align="right">33840</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">t1</td>
+    <td align="right">77.79</td>
+    <td align="right">711738</td>
+    <td align="right">203261</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">embeddings</td>
+    <td align="right">98.38</td>
+    <td align="right">116406</td>
+    <td align="right">1919</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">station_main</td>
+    <td align="right">99.97</td>
+    <td align="right">69042</td>
+    <td align="right">24</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">job_run_details</td>
+    <td align="right">97.02</td>
+    <td align="right">41906</td>
+    <td align="right">1289</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">source_table_temp</td>
+    <td align="right">86.34</td>
+    <td align="right">20561</td>
+    <td align="right">3254</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">station_1</td>
+    <td align="right">99.83</td>
+    <td align="right">5413</td>
+    <td align="right">9</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">feature_info</td>
+    <td align="right">91.23</td>
+    <td align="right">104</td>
+    <td align="right">10</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Pick the tables with low 'hit_percent' and consider about partitioning, optimizing queries related to those tables. Also consider using <a href=https://www.postgresql.org/docs/current/pgprewarm.html target=_blank>pg_prewarm</a> extension to load relation data into buffer cache.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Database Cache Hit Ratio: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">database_name</th>
+    <th align="center">blks_hit</th>
+    <th align="center">blks_read</th>
+    <th align="center">cache_hit_ratio</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">bench</td>
+    <td align="right">513287331</td>
+    <td align="right">309097959</td>
+    <td align="right">62.41</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres_air</td>
+    <td align="right">59118910</td>
+    <td align="right">2111592</td>
+    <td align="right">96.55</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">postgres</td>
+    <td align="right">719417399</td>
+    <td align="right">3736460</td>
+    <td align="right">99.48</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">test2</td>
+    <td align="right">54019714</td>
+    <td align="right">618</td>
+    <td align="right">100.00</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="right">652842298</td>
+    <td align="right">5339</td>
+    <td align="right">100.00</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: A cache hit ratio below 99% typically indicates that shared_buffers is undersized for the workload, or the working dataset exceeds available memory. Monitor CloudWatch metric 'BufferCacheHitRatio' and consider increasing shared_buffers.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 10 CPU Consuming SQLs: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">user</th>
+    <th align="center">db_name</th>
+    <th align="center">short_query</th>
+    <th align="center">total_ime</th>
+    <th align="center">calls</th>
+    <th align="center">mean</th>
+    <th align="center">percentage_cpu</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">select count(distinct transactionid::varchar) acti</td>
+    <td align="right">3746441.02</td>
+    <td align="right">1636723</td>
+    <td align="right">3746441.02</td>
+    <td align="right">18.70</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">select queryid, calls, (total_plan_time + total_ex</td>
+    <td align="right">3564081.55</td>
+    <td align="right">865211</td>
+    <td align="right">3564081.55</td>
+    <td align="right">17.79</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">select count(distinct pid) blocked_transactions fr</td>
+    <td align="right">3425249.83</td>
+    <td align="right">1636723</td>
+    <td align="right">3425249.83</td>
+    <td align="right">17.10</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">SELECT name,setting FROM pg_settings where vartype</td>
+    <td align="right">2171098.65</td>
+    <td align="right">1636723</td>
+    <td align="right">2171098.65</td>
+    <td align="right">10.84</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">select pid, usename, client_addr, client_hostname,</td>
+    <td align="right">2083959.75</td>
+    <td align="right">13781709</td>
+    <td align="right">2083959.75</td>
+    <td align="right">10.40</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">select queryid, calls, (total_plan_time + total_ex</td>
+    <td align="right">1458203.05</td>
+    <td align="right">315323</td>
+    <td align="right">1458203.05</td>
+    <td align="right">7.28</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">SET statement_timeout=10000</td>
+    <td align="right">1094103.72</td>
+    <td align="right">164670961</td>
+    <td align="right">1094103.72</td>
+    <td align="right">5.46</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">SELECT count(*) FROM pg_show_all_settings() WHERE </td>
+    <td align="right">401633.57</td>
+    <td align="right">163647</td>
+    <td align="right">401633.57</td>
+    <td align="right">2.00</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">select count(*) active_count from pg_stat_activity</td>
+    <td align="right">380096.09</td>
+    <td align="right">4910169</td>
+    <td align="right">380096.09</td>
+    <td align="right">1.90</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">SELECT $1</td>
+    <td align="right">260042.66</td>
+    <td align="right">85244570</td>
+    <td align="right">260042.66</td>
+    <td align="right">1.30</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Run EXPLAIN plan on the top CPU consuming queries and optimize. Please watch this <a href=https://www.youtube.com/watch?v=XKPHbYe-fHQ target=_blank>AWS video</a> on RDS/Aurora PostgreSQL query tuning. This AWS <a href=https://aws.amazon.com/premiumsupport/knowledge-center/rds-aurora-postgresql-high-cpu/ target=_blank>knowledge-center article</a> discusses about troubleshooting high CPU issue at RDS/Aurora PostgreSQL. </font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 10 Read I/O Queries: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">user</th>
+    <th align="center">db_name</th>
+    <th align="center">short_query</th>
+    <th align="center">total_time</th>
+    <th align="center">calls</th>
+    <th align="center">shared_blks_read</th>
+    <th align="center">shared_blks_hit</th>
+    <th align="center">hit_percent</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">SELECT count(*) FROM pg_catalog.pg_class c JOIN pg</td>
+    <td align="right">55654.55</td>
+    <td align="right">1636750</td>
+    <td align="right">47</td>
+    <td align="right">6546953</td>
+    <td align="right">100.00</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">SELECT value FROM rds_heartbeat2</td>
+    <td align="right">58882.03</td>
+    <td align="right">6546944</td>
+    <td align="right">21</td>
+    <td align="right">6546923</td>
+    <td align="right">100.00</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">select count(distinct transactionid::varchar) acti</td>
+    <td align="right">3746441.02</td>
+    <td align="right">1636723</td>
+    <td align="right">14</td>
+    <td align="right">898</td>
+    <td align="right">98.46</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">INSERT INTO public.rds_replication_info_heartbeat </td>
+    <td align="right">10126.80</td>
+    <td align="right">125195</td>
+    <td align="right">11</td>
+    <td align="right">502302</td>
+    <td align="right">100.00</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">SELECT COUNT(*) FROM pg_class WHERE relname = $1 A</td>
+    <td align="right">25493.84</td>
+    <td align="right">964102</td>
+    <td align="right">5</td>
+    <td align="right">2892374</td>
+    <td align="right">100.00</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">SELECT count(*) FROM pg_auth_members m, pg_roles r</td>
+    <td align="right">8464.96</td>
+    <td align="right">163647</td>
+    <td align="right">2</td>
+    <td align="right">327292</td>
+    <td align="right">100.00</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_14837&quot;</td>
+    <td align="right">0.79</td>
+    <td align="right">99</td>
+    <td align="right">0</td>
+    <td align="right">0</td>
+    <td align="right">&nbsp; </td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_15893&quot;</td>
+    <td align="right">0.85</td>
+    <td align="right">97</td>
+    <td align="right">0</td>
+    <td align="right">0</td>
+    <td align="right">&nbsp; </td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_15362&quot;</td>
+    <td align="right">0.71</td>
+    <td align="right">98</td>
+    <td align="right">0</td>
+    <td align="right">0</td>
+    <td align="right">&nbsp; </td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_16311&quot;</td>
+    <td align="right">0.84</td>
+    <td align="right">98</td>
+    <td align="right">0</td>
+    <td align="right">0</td>
+    <td align="right">&nbsp; </td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Run EXPLAIN plan on the top 10 Read queries with low 'hit_percent'. Focus on proper indexing, partitioning, checkpoints and VACUUM ANALYZE on heavily used tables. Look at CloudWatch metric 'BufferCacheHitRatio'. Lower the value, higher the Read IO cost.</font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 10 Temporary Space Written Queries: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">userid</th>
+    <th align="center">db_name</th>
+    <th align="center">short_query</th>
+    <th align="center">total_exec_time_ms</th>
+    <th align="center">avg_exec_time_ms</th>
+    <th align="center">temp_blks_written</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_17856&quot;</td>
+    <td align="left">00:00:00.000734</td>
+    <td align="right">0.007642500000000001</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_15362&quot;</td>
+    <td align="left">00:00:00.000712</td>
+    <td align="right">0.0072632040816326526</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_13437&quot;</td>
+    <td align="left">00:00:00.000799</td>
+    <td align="right">0.00807420202020202</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_13806&quot;</td>
+    <td align="left">00:00:00.00082</td>
+    <td align="right">0.008279878787878787</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_15893&quot;</td>
+    <td align="left">00:00:00.000852</td>
+    <td align="right">0.008784329896907216</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_14837&quot;</td>
+    <td align="left">00:00:00.000793</td>
+    <td align="right">0.008006151515151518</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_16991&quot;</td>
+    <td align="left">00:00:00.000766</td>
+    <td align="right">0.007976322916666669</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_17256&quot;</td>
+    <td align="left">00:00:00.000709</td>
+    <td align="right">0.007237530612244899</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_16311&quot;</td>
+    <td align="left">00:00:00.000844</td>
+    <td align="right">0.008607428571428575</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_16657&quot;</td>
+    <td align="left">00:00:00.000767</td>
+    <td align="right">0.00806877894736842</td>
+    <td align="right">0</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Run EXPLAIN plan on the top 10 temporary space written queries. In the EXPLAIN plan, look for pattern:   Sort Method: external merge  Disk: 47224kB. This shows that the query will create around 50mB of temp files. In query session use SET LOCAL work_mem = '55MB';. Look at DML operations consuming temporary space. temp_file_limit parameter cancels any query exceeding the size of temp_files in KB. log_temp_files parameter controls logging temporary file names and sizes. </font>
+<br>
+<br>
+<font face=verdana color=#ff6600>Top 10 Temporary Space Read Queries: </font>
+<br>
+<table border="1">
+  <tr>
+    <th align="center">userid</th>
+    <th align="center">db_name</th>
+    <th align="center">short_query</th>
+    <th align="center">total_exec_time_ms</th>
+    <th align="center">avg_exec_time_ms</th>
+    <th align="center">temp_blks_read</th>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_17856&quot;</td>
+    <td align="left">00:00:00.000734</td>
+    <td align="right">0.007642500000000001</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_15362&quot;</td>
+    <td align="left">00:00:00.000712</td>
+    <td align="right">0.0072632040816326526</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_13437&quot;</td>
+    <td align="left">00:00:00.000799</td>
+    <td align="right">0.00807420202020202</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_13806&quot;</td>
+    <td align="left">00:00:00.00082</td>
+    <td align="right">0.008279878787878787</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_15893&quot;</td>
+    <td align="left">00:00:00.000852</td>
+    <td align="right">0.008784329896907216</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_14837&quot;</td>
+    <td align="left">00:00:00.000793</td>
+    <td align="right">0.008006151515151518</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_16991&quot;</td>
+    <td align="left">00:00:00.000766</td>
+    <td align="right">0.007976322916666669</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_17256&quot;</td>
+    <td align="left">00:00:00.000709</td>
+    <td align="right">0.007237530612244899</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_16311&quot;</td>
+    <td align="left">00:00:00.000844</td>
+    <td align="right">0.008607428571428575</td>
+    <td align="right">0</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">rdsadmin</td>
+    <td align="left">rdsadmin</td>
+    <td align="left">FETCH 50 IN &quot;query-cursor_16657&quot;</td>
+    <td align="left">00:00:00.000767</td>
+    <td align="right">0.00806877894736842</td>
+    <td align="right">0</td>
+  </tr>
+</table> 
+<font face=verdana color=#0099cc>Note: Run EXPLAIN plan on the top 10 temporary space read queries.</font>
+<br>
+<br>
+<font face=verdana color=#0099cc>Note: While modifying any database configuration, parameters, please consult/review with your DBA/DB expert. Results may vary depending on the workloads and expectations. Also, before applying modifications, learn about them at <a href=https://www.postgresql.org/docs/current/pgstatstatements.html target=_blank>PostgreSQL official docs</a>. Before making any changes in production, its recommended to test those in testing environment thoroughly.
+<br>
+<font face=verdana color=#d3d3d3><small>End of report. Script version V23</small></font>
+<br>
+</td></tr></table></body></html>
