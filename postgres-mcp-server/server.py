@@ -901,45 +901,64 @@ def get_parameter_recommendations(instance_id: str = "") -> str:
 
         # Calculate recommendations
         recommendations = []
-        recommendations.append(f"**Instance:** {instance_class} ({ram_gib} GiB RAM)")
-        recommendations.append(f"**Engine:** {engine}")
+        platform = "Aurora PostgreSQL" if is_aurora else "Amazon RDS for PostgreSQL"
+        recommendations.append(f"## Parameter Tuning Recommendations")
+        recommendations.append(f"")
+        recommendations.append(f"**Platform:** {platform}")
+        recommendations.append(f"**Instance Class:** {instance_class}")
+        recommendations.append(f"**Total RAM:** {ram_gib} GiB ({ram_mb} MB)")
+        recommendations.append(f"**Max Connections:** {int(current.get('max_connections', 0))}")
         recommendations.append("")
 
         # shared_buffers
         if is_aurora:
             recommended_sb = int(ram_mb * 0.75)
-            recommendations.append(f"| shared_buffers | {int(current.get('shared_buffers', 0))} MB | {recommended_sb} MB | 75% RAM (Aurora default, managed) |")
+            pct_label = "75%"
+            reason = f"Aurora allocates 75% of total RAM ({ram_gib} GiB) to shared_buffers by default. No OS file cache is used."
+            recommendations.append(f"**shared_buffers:** Current = {int(current.get('shared_buffers', 0))} MB, Recommended = {recommended_sb} MB ({pct_label} of {ram_mb} MB)")
+            recommendations.append(f"  - {reason}")
         else:
             recommended_sb = int(ram_mb * 0.25)
-            recommendations.append(f"| shared_buffers | {int(current.get('shared_buffers', 0))} MB | {recommended_sb} MB | 25% RAM for RDS |")
+            pct_label = "25%"
+            reason = f"RDS uses OS file cache. Best practice is 25% of total RAM ({ram_gib} GiB) for shared_buffers."
+            recommendations.append(f"**shared_buffers:** Current = {int(current.get('shared_buffers', 0))} MB, Recommended = {recommended_sb} MB ({pct_label} of {ram_mb} MB)")
+            recommendations.append(f"  - {reason}")
+        recommendations.append("")
 
         # effective_cache_size
         if is_aurora:
             recommended_ecs = recommended_sb
-            recommendations.append(f"| effective_cache_size | {int(current.get('effective_cache_size', 0))} MB | {recommended_ecs} MB | = shared_buffers on Aurora (no OS cache) |")
+            recommendations.append(f"**effective_cache_size:** Current = {int(current.get('effective_cache_size', 0))} MB, Recommended = {recommended_ecs} MB")
+            recommendations.append(f"  - On Aurora, set equal to shared_buffers since there is no OS file system cache.")
         else:
             recommended_ecs = int(ram_mb * 0.75)
-            recommendations.append(f"| effective_cache_size | {int(current.get('effective_cache_size', 0))} MB | {recommended_ecs} MB | 75% RAM for RDS |")
+            recommendations.append(f"**effective_cache_size:** Current = {int(current.get('effective_cache_size', 0))} MB, Recommended = {recommended_ecs} MB")
+            recommendations.append(f"  - Set to 75% of total RAM. This tells the planner how much memory is available for caching (shared_buffers + OS cache).")
+        recommendations.append("")
 
         # work_mem
         max_conn = current.get("max_connections", 100)
         # Heuristic: RAM / (max_connections * 4) but minimum 4MB, max 256MB
         recommended_wm = min(256, max(4, int(ram_mb / (max_conn * 4))))
-        recommendations.append(f"| work_mem | {int(current.get('work_mem', 0))} MB | {recommended_wm} MB | RAM/(max_conn*4), range 4-256 MB |")
+        recommendations.append(f"**work_mem:** Current = {int(current.get('work_mem', 0))} MB, Recommended = {recommended_wm} MB")
+        recommendations.append(f"  - Formula: Total RAM ({ram_mb} MB) / (max_connections ({int(max_conn)}) x 4) = {int(ram_mb / (max_conn * 4))} MB. Each query sort/hash uses this per operation. Too low causes temp file spill.")
+        recommendations.append("")
 
         # maintenance_work_mem
         recommended_mwm = min(2048, int(ram_mb * 0.05))
-        recommendations.append(f"| maintenance_work_mem | {int(current.get('maintenance_work_mem', 0))} MB | {recommended_mwm} MB | 5% RAM, max 2 GB |")
+        recommendations.append(f"**maintenance_work_mem:** Current = {int(current.get('maintenance_work_mem', 0))} MB, Recommended = {recommended_mwm} MB")
+        recommendations.append(f"  - Set to 5% of total RAM (max 2 GB). Used by VACUUM, CREATE INDEX, and ALTER TABLE operations.")
+        recommendations.append("")
 
         # random_page_cost
         rpc = current.get("random_page_cost", 4)
+        recommendations.append(f"**random_page_cost:** Current = {rpc}, Recommended = 1.1")
         if is_aurora:
-            recommendations.append(f"| random_page_cost | {rpc} | 1.1 | SSD storage (Aurora) |")
+            recommendations.append(f"  - Aurora uses SSD storage. Default of 4.0 assumes spinning disks, causing the planner to avoid index scans unnecessarily.")
         else:
-            recommendations.append(f"| random_page_cost | {rpc} | 1.1 | SSD storage (gp2/gp3/io1) |")
+            recommendations.append(f"  - RDS uses SSD storage (gp2/gp3/io1). Default of 4.0 assumes spinning disks, causing the planner to avoid index scans unnecessarily.")
 
-        header = "| Parameter | Current | Recommended | Reason |\n| --- | --- | --- | --- |"
-        return "\n".join(recommendations[:3]) + "\n" + header + "\n" + "\n".join(recommendations[3:])
+        return "\n".join(recommendations)
 
     except Exception as e:
         return f"Error generating recommendations: {str(e)}"
