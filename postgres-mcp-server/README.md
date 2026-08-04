@@ -35,6 +35,10 @@ The MCP server runs 39 predefined, read-only diagnostic queries across 11 catego
 ### Install
 
 ```bash
+# Recommended: use a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
 pip install -r requirements.txt
 ```
 
@@ -66,8 +70,8 @@ Edit `~/.kiro/settings/mcp.json`:
 {
   "mcpServers": {
     "postgresql-dba": {
-      "command": "python3",
-      "args": ["/path/to/mcp-server/server.py"],
+      "command": "/path/to/postgres-mcp-server/.venv/bin/python3",
+      "args": ["/path/to/postgres-mcp-server/server.py"],
       "env": {
         "PGHOST": "your-db-endpoint",
         "PGPORT": "5432",
@@ -80,6 +84,8 @@ Edit `~/.kiro/settings/mcp.json`:
 }
 ```
 
+> **Note:** Use the full path to the venv Python binary so MCP can find installed dependencies.
+
 #### Claude Desktop
 
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
@@ -88,8 +94,8 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "postgresql-dba": {
-      "command": "python3",
-      "args": ["/path/to/mcp-server/server.py"],
+      "command": "/path/to/postgres-mcp-server/.venv/bin/python3",
+      "args": ["/path/to/postgres-mcp-server/server.py"],
       "env": {
         "PGHOST": "your-db-endpoint",
         "PGPORT": "5432",
@@ -110,8 +116,8 @@ Edit `.cursor/mcp.json` in your project root:
 {
   "mcpServers": {
     "postgresql-dba": {
-      "command": "python3",
-      "args": ["/path/to/mcp-server/server.py"],
+      "command": "/path/to/postgres-mcp-server/.venv/bin/python3",
+      "args": ["/path/to/postgres-mcp-server/server.py"],
       "env": {
         "PGHOST": "your-db-endpoint",
         "PGPORT": "5432",
