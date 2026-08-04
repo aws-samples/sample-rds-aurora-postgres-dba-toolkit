@@ -982,6 +982,89 @@ def get_slow_queries_from_logs(instance_id: str = "", minutes: int = 60) -> str:
     """
     if not AWS_AVAILABLE:
         return "Error: boto3 not installed. Run: pip install boto3"
+
+    # First, check if log_min_duration_statement and auto_explain are configured
+    try:
+        conn = _get_connection()
+        params = _execute_query(conn, (
+            "SELECT name, setting FROM pg_settings "
+            "WHERE name IN ('log_min_duration_statement','auto_explain.log_min_duration',"
+            "'shared_preload_libraries')"
+        ))
+        conn.close()
+    except Exception:
+        params = []
+
+    param_map = {p["name"]: p["setting"] for p in params}
+    log_min_dur = param_map.get("log_min_duration_statement", "-1")
+    auto_explain_dur = param_map.get("auto_explain.log_min_duration", None)
+    shared_libs = param_map.get("shared_preload_libraries", "")
+
+    issues = []
+    if log_min_dur == "-1" or log_min_dur == "0":
+        issues.append("log_min_duration_statement is not set (disabled)")
+    if "auto_explain" not in shared_libs:
+        issues.append("auto_explain is not loaded in shared_preload_libraries")
+
+    if issues:
+        lines = [
+            "## Slow Query Analysis Limitations\n",
+            "The following logging parameters are not configured on this instance:\n",
+        ]
+        for issue in issues:
+            lines.append(f"- {issue}")
+        lines.append("")
+        lines.append("**Without these settings, actual slow query capture and execution plan logging are unavailable.**")
+        lines.append("Falling back to pg_stat_statements (cumulative stats, not point-in-time).\n")
+        lines.append("### Recommended Parameter Changes\n")
+        lines.append("Add these to your Aurora/RDS parameter group:\n")
+        lines.append("```")
+        lines.append("# Log queries slower than 100ms")
+        lines.append("log_min_duration_statement = 100")
+        lines.append("")
+        lines.append("# Enable auto_explain for execution plans in logs")
+        lines.append("shared_preload_libraries = 'auto_explain,pg_stat_statements'")
+        lines.append("auto_explain.log_min_duration = 100  # ms")
+        lines.append("auto_explain.log_analyze = true")
+        lines.append("auto_explain.log_buffers = true")
+        lines.append("auto_explain.log_timing = true")
+        lines.append("auto_explain.log_nested_statements = true")
+        lines.append("auto_explain.log_format = text")
+        lines.append("```")
+        lines.append("")
+        lines.append("*Note: shared_preload_libraries requires a database restart to take effect.*\n")
+        lines.append("### Fallback: pg_stat_statements (cumulative)\n")
+        lines.append("Using pg_stat_statements for top queries by total execution time.")
+        lines.append("These are cumulative since last reset, not point-in-time slow query captures.\n")
+
+        # Fallback to pg_stat_statements
+        try:
+            conn = _get_connection()
+            fallback = _execute_query(conn, (
+                "SELECT queryid, left(query, 150) AS query, calls, "
+                "round(total_exec_time::numeric, 2) AS total_ms, "
+                "round(mean_exec_time::numeric, 2) AS mean_ms, "
+                "round((shared_blks_hit * 100.0 / NULLIF(shared_blks_hit + shared_blks_read, 0))::numeric, 2) AS cache_hit_pct "
+                "FROM pg_stat_statements WHERE userid != 10 "
+                "ORDER BY mean_exec_time DESC LIMIT 10"
+            ))
+            conn.close()
+            if fallback:
+                lines.append("| # | Mean (ms) | Calls | Total (ms) | Cache Hit % | Query |")
+                lines.append("| --- | --- | --- | --- | --- | --- |")
+                for i, row in enumerate(fallback, 1):
+                    lines.append(
+                        f"| {i} | {row['mean_ms']} | {row['calls']} | {row['total_ms']} | "
+                        f"{row.get('cache_hit_pct', 'N/A')} | {row['query'][:80]} |"
+                    )
+            else:
+                lines.append("pg_stat_statements is not available either. Enable it in shared_preload_libraries.")
+        except Exception as e:
+            lines.append(f"pg_stat_statements fallback failed: {str(e)}")
+
+        return "\n".join(lines)
+
+    # If logging is properly configured, query CloudWatch
     if not instance_id:
         instance_id = _detect_instance_from_host()
         if not instance_id:
