@@ -699,14 +699,20 @@ def run_health_check() -> str:
 @mcp.tool()
 def explain_query(sql: str) -> str:
     """
-    Run EXPLAIN (not EXECUTE) on a SELECT query to show the execution plan.
-    Only SELECT statements are allowed.
+    Run EXPLAIN (not EXECUTE) on a SELECT query to show the estimated execution plan.
+    Only SELECT statements are allowed. NEVER runs EXPLAIN ANALYZE (which would execute the query).
+    For actual execution plans, use get_slow_queries_from_logs to retrieve auto_explain output from CloudWatch.
     """
     stripped = sql.strip().rstrip(";")
-    if not stripped.upper().startswith("SELECT"):
+    # Safety: block any attempt to sneak in ANALYZE
+    upper = stripped.upper()
+    if "ANALYZE" in upper or "EXECUTE" in upper:
+        return "Error: EXPLAIN ANALYZE is not permitted. It executes the query on production. Use get_slow_queries_from_logs for actual execution plans from auto_explain."
+    if not upper.startswith("SELECT"):
         return "Error: Only SELECT queries can be explained. Provide a SELECT statement."
     try:
         conn = _get_connection()
+        # Only EXPLAIN with COSTS and BUFFERS (estimated, never executes)
         explain_sql = f"EXPLAIN (FORMAT TEXT, VERBOSE, COSTS, BUFFERS) {stripped}"
         rows = conn.run(explain_sql)
         conn.close()
@@ -967,8 +973,10 @@ def get_parameter_recommendations(instance_id: str = "") -> str:
 @mcp.tool()
 def get_slow_queries_from_logs(instance_id: str = "", minutes: int = 60) -> str:
     """
-    Query CloudWatch Logs for slow queries logged by log_min_duration_statement.
-    Searches the PostgreSQL log group for the specified RDS/Aurora instance.
+    Query CloudWatch Logs for slow queries and their auto_explain execution plans.
+    Searches the PostgreSQL log group for queries exceeding log_min_duration_statement.
+    If auto_explain is enabled, returns the actual execution plan (with timing, buffers, I/O).
+    This is the preferred way to analyze slow queries (not EXPLAIN ANALYZE which executes on prod).
     Returns the top slow queries from the last N minutes (default: 60).
     Requires AWS credentials and boto3.
     """
@@ -992,9 +1000,10 @@ def get_slow_queries_from_logs(instance_id: str = "", minutes: int = 60) -> str:
         log_group = None
         for lg in log_groups_to_try:
             try:
-                logs.describe_log_groups(logGroupNamePrefix=lg)
-                log_group = lg
-                break
+                resp = logs.describe_log_groups(logGroupNamePrefix=lg)
+                if resp.get("logGroups"):
+                    log_group = lg
+                    break
             except Exception:
                 continue
 
@@ -1009,23 +1018,24 @@ def get_slow_queries_from_logs(instance_id: str = "", minutes: int = 60) -> str:
         end_time = int(time.time() * 1000)
         start_time = end_time - (minutes * 60 * 1000)
 
-        # CloudWatch Logs Insights query for slow queries
-        query = (
+        # Query 1: Get slow queries with duration
+        query_duration = (
             "fields @timestamp, @message "
             "| filter @message like /duration:/ "
+            "| filter @message not like /execute/ "
             "| sort @timestamp desc "
-            "| limit 25"
+            "| limit 20"
         )
 
         response = logs.start_query(
             logGroupName=log_group,
             startTime=start_time,
             endTime=end_time,
-            queryString=query,
+            queryString=query_duration,
         )
         query_id = response["queryId"]
 
-        # Poll for results (max 15 seconds)
+        # Poll for results
         import time as time_mod
         for _ in range(15):
             time_mod.sleep(1)
@@ -1036,25 +1046,89 @@ def get_slow_queries_from_logs(instance_id: str = "", minutes: int = 60) -> str:
         if result["status"] != "Complete":
             return "Error: CloudWatch Logs Insights query timed out."
 
-        results = result.get("results", [])
-        if not results:
-            return f"No slow queries found in the last {minutes} minutes in {log_group}."
+        duration_results = result.get("results", [])
 
-        lines = [f"**Slow Queries (last {minutes} min) from {log_group}**\n"]
-        lines.append("| Timestamp | Duration | Query |")
-        lines.append("| --- | --- | --- |")
-        for row in results[:25]:
+        # Query 2: Get auto_explain plans (if available)
+        query_plans = (
+            "fields @timestamp, @message "
+            "| filter @message like /plan:/ or @message like /Query Text:/ "
+            "| sort @timestamp desc "
+            "| limit 20"
+        )
+
+        response2 = logs.start_query(
+            logGroupName=log_group,
+            startTime=start_time,
+            endTime=end_time,
+            queryString=query_plans,
+        )
+        query_id2 = response2["queryId"]
+
+        for _ in range(15):
+            time_mod.sleep(1)
+            result2 = logs.get_query_results(queryId=query_id2)
+            if result2["status"] == "Complete":
+                break
+
+        plan_results = result2.get("results", []) if result2["status"] == "Complete" else []
+
+        # Format output
+        lines = [f"## Slow Queries (last {minutes} min) from {log_group}\n"]
+
+        if not duration_results:
+            lines.append(f"No slow queries found in the last {minutes} minutes.")
+            return "\n".join(lines)
+
+        lines.append("### Queries exceeding log_min_duration_statement\n")
+        lines.append("| # | Timestamp | Duration | Query |")
+        lines.append("| --- | --- | --- | --- |")
+
+        for i, row in enumerate(duration_results[:15], 1):
             fields = {f["field"]: f["value"] for f in row}
             msg = fields.get("@message", "")
-            ts = fields.get("@timestamp", "")
-            # Extract duration from message
+            ts = fields.get("@timestamp", "")[:19]
+            # Extract duration
             duration = ""
             if "duration:" in msg:
                 parts = msg.split("duration:")
                 if len(parts) > 1:
-                    duration = parts[1].split(" ms")[0].strip() + " ms"
-            query_text = msg[-150:] if len(msg) > 150 else msg
-            lines.append(f"| {ts[:19]} | {duration} | {query_text[:100]} |")
+                    dur_part = parts[1].strip()
+                    if " ms" in dur_part:
+                        duration = dur_part.split(" ms")[0].strip() + " ms"
+            # Extract query text (after "statement:" or "Query Text:")
+            query_text = ""
+            if "statement:" in msg:
+                query_text = msg.split("statement:")[-1].strip()[:120]
+            elif "Query Text:" in msg:
+                query_text = msg.split("Query Text:")[-1].strip()[:120]
+            else:
+                query_text = msg[-120:]
+            lines.append(f"| {i} | {ts} | {duration} | {query_text} |")
+
+        # Add auto_explain plans if found
+        if plan_results:
+            lines.append("\n### auto_explain Execution Plans\n")
+            lines.append("These are actual execution plans captured during production query execution (not estimated):\n")
+            for row in plan_results[:10]:
+                fields = {f["field"]: f["value"] for f in row}
+                msg = fields.get("@message", "")
+                ts = fields.get("@timestamp", "")[:19]
+                # Clean up the plan output
+                plan_text = msg
+                if "plan:" in plan_text:
+                    plan_text = plan_text.split("plan:")[-1]
+                lines.append(f"**{ts}:**")
+                lines.append(f"```\n{plan_text[:500]}\n```\n")
+        else:
+            lines.append("\n*Note: No auto_explain plans found. Enable auto_explain in your parameter group for actual execution plans:*")
+            lines.append("```")
+            lines.append("shared_preload_libraries = 'auto_explain,pg_stat_statements'")
+            lines.append("auto_explain.log_min_duration = 100  # ms")
+            lines.append("auto_explain.log_analyze = true")
+            lines.append("auto_explain.log_buffers = true")
+            lines.append("auto_explain.log_timing = true")
+            lines.append("auto_explain.log_nested_statements = true")
+            lines.append("```")
 
         return "\n".join(lines)
 
