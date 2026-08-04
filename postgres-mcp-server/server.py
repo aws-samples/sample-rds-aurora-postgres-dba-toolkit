@@ -19,6 +19,13 @@ import argparse
 import pg8000.native
 from fastmcp import FastMCP
 
+# Optional AWS SDK (gracefully degrade if not installed)
+try:
+    import boto3
+    AWS_AVAILABLE = True
+except ImportError:
+    AWS_AVAILABLE = False
+
 # Initialize MCP server
 mcp = FastMCP(
     "postgresql-dba-mcp",
@@ -707,6 +714,333 @@ def explain_query(sql: str) -> str:
         return "```\n" + "\n".join(plan_lines) + "\n```"
     except Exception as e:
         return f"Error explaining query: {str(e)}"
+
+
+# ============================================================
+# AWS-Aware Tools (require boto3 + AWS credentials)
+# These tools gracefully return an error message if boto3
+# is not installed or AWS credentials are not configured.
+# ============================================================
+
+# Instance class to memory mapping (GiB)
+INSTANCE_MEMORY_MAP = {
+    "db.t3.micro": 1, "db.t3.small": 2, "db.t3.medium": 4, "db.t3.large": 8,
+    "db.t3.xlarge": 16, "db.t3.2xlarge": 32,
+    "db.t4g.micro": 1, "db.t4g.small": 2, "db.t4g.medium": 4, "db.t4g.large": 8,
+    "db.t4g.xlarge": 16, "db.t4g.2xlarge": 32,
+    "db.m5.large": 8, "db.m5.xlarge": 16, "db.m5.2xlarge": 32, "db.m5.4xlarge": 64,
+    "db.m5.8xlarge": 128, "db.m5.12xlarge": 192, "db.m5.16xlarge": 256, "db.m5.24xlarge": 384,
+    "db.m6g.large": 8, "db.m6g.xlarge": 16, "db.m6g.2xlarge": 32, "db.m6g.4xlarge": 64,
+    "db.m6g.8xlarge": 128, "db.m6g.12xlarge": 192, "db.m6g.16xlarge": 256,
+    "db.m6i.large": 8, "db.m6i.xlarge": 16, "db.m6i.2xlarge": 32, "db.m6i.4xlarge": 64,
+    "db.m6i.8xlarge": 128, "db.m6i.12xlarge": 192, "db.m6i.16xlarge": 256,
+    "db.m7g.large": 8, "db.m7g.xlarge": 16, "db.m7g.2xlarge": 32, "db.m7g.4xlarge": 64,
+    "db.m7g.8xlarge": 128, "db.m7g.12xlarge": 192, "db.m7g.16xlarge": 256,
+    "db.r5.large": 16, "db.r5.xlarge": 32, "db.r5.2xlarge": 64, "db.r5.4xlarge": 128,
+    "db.r5.8xlarge": 256, "db.r5.12xlarge": 384, "db.r5.16xlarge": 512, "db.r5.24xlarge": 768,
+    "db.r6g.large": 16, "db.r6g.xlarge": 32, "db.r6g.2xlarge": 64, "db.r6g.4xlarge": 128,
+    "db.r6g.8xlarge": 256, "db.r6g.12xlarge": 384, "db.r6g.16xlarge": 512,
+    "db.r6i.large": 16, "db.r6i.xlarge": 32, "db.r6i.2xlarge": 64, "db.r6i.4xlarge": 128,
+    "db.r6i.8xlarge": 256, "db.r6i.12xlarge": 384, "db.r6i.16xlarge": 512,
+    "db.r7g.large": 16, "db.r7g.xlarge": 32, "db.r7g.2xlarge": 64, "db.r7g.4xlarge": 128,
+    "db.r7g.8xlarge": 256, "db.r7g.12xlarge": 384, "db.r7g.16xlarge": 512,
+    "db.x2g.large": 32, "db.x2g.xlarge": 64, "db.x2g.2xlarge": 128,
+    "db.x2g.4xlarge": 256, "db.x2g.8xlarge": 512, "db.x2g.12xlarge": 768, "db.x2g.16xlarge": 1024,
+}
+
+
+def _get_aws_region():
+    """Get AWS region from env or default."""
+    return os.environ.get("AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+
+
+def _detect_instance_from_host():
+    """Try to extract RDS/Aurora instance identifier from PGHOST."""
+    host = DB_HOST
+    # RDS endpoint format: <instance-id>.<random>.region.rds.amazonaws.com
+    # Aurora endpoint: <cluster-id>.cluster-<random>.region.rds.amazonaws.com
+    if "rds.amazonaws.com" in host:
+        parts = host.split(".")
+        return parts[0]  # instance or cluster identifier
+    return None
+
+
+@mcp.tool()
+def get_instance_info(instance_id: str = "") -> str:
+    """
+    Get RDS/Aurora instance details: engine, version, instance class, RAM, storage.
+    If instance_id is not provided, attempts to detect from PGHOST endpoint.
+    Requires AWS credentials and boto3.
+    """
+    if not AWS_AVAILABLE:
+        return "Error: boto3 not installed. Run: pip install boto3"
+    if not instance_id:
+        instance_id = _detect_instance_from_host()
+        if not instance_id:
+            return "Error: Could not detect instance ID from PGHOST. Provide instance_id explicitly."
+
+    region = _get_aws_region()
+    try:
+        rds = boto3.client("rds", region_name=region)
+        # Try as DB instance first
+        try:
+            resp = rds.describe_db_instances(DBInstanceIdentifier=instance_id)
+            inst = resp["DBInstances"][0]
+            instance_class = inst["DBInstanceClass"]
+            engine = inst["Engine"]
+            version = inst["EngineVersion"]
+            storage = inst.get("AllocatedStorage", "N/A")
+            ram_gib = INSTANCE_MEMORY_MAP.get(instance_class, "Unknown")
+            cluster_id = inst.get("DBClusterIdentifier", "N/A")
+            az = inst.get("AvailabilityZone", "N/A")
+            status = inst.get("DBInstanceStatus", "N/A")
+
+            lines = [
+                f"**Instance:** {instance_id}",
+                f"**Engine:** {engine} {version}",
+                f"**Instance Class:** {instance_class}",
+                f"**RAM:** {ram_gib} GiB",
+                f"**Storage:** {storage} GB",
+                f"**Cluster:** {cluster_id}",
+                f"**AZ:** {az}",
+                f"**Status:** {status}",
+            ]
+            return "\n".join(lines)
+        except rds.exceptions.DBInstanceNotFoundFault:
+            pass
+
+        # Try as Aurora cluster
+        try:
+            resp = rds.describe_db_clusters(DBClusterIdentifier=instance_id)
+            cluster = resp["DBClusters"][0]
+            engine = cluster["Engine"]
+            version = cluster["EngineVersion"]
+            members = cluster.get("DBClusterMembers", [])
+
+            lines = [
+                f"**Cluster:** {instance_id}",
+                f"**Engine:** {engine} {version}",
+                f"**Status:** {cluster.get('Status', 'N/A')}",
+                f"**Members:** {len(members)}",
+            ]
+            # Get instance details for first member
+            if members:
+                writer = [m for m in members if m.get("IsClusterWriter")]
+                member_id = writer[0]["DBInstanceIdentifier"] if writer else members[0]["DBInstanceIdentifier"]
+                resp2 = rds.describe_db_instances(DBInstanceIdentifier=member_id)
+                inst = resp2["DBInstances"][0]
+                instance_class = inst["DBInstanceClass"]
+                ram_gib = INSTANCE_MEMORY_MAP.get(instance_class, "Unknown")
+                lines.append(f"**Writer Instance:** {member_id}")
+                lines.append(f"**Instance Class:** {instance_class}")
+                lines.append(f"**RAM:** {ram_gib} GiB")
+            return "\n".join(lines)
+        except rds.exceptions.DBClusterNotFoundFault:
+            return f"Error: No RDS instance or Aurora cluster found with identifier '{instance_id}' in region {region}."
+    except Exception as e:
+        return f"Error querying RDS API: {str(e)}"
+
+
+@mcp.tool()
+def get_parameter_recommendations(instance_id: str = "") -> str:
+    """
+    Get parameter tuning recommendations based on actual instance RAM and engine type.
+    Compares current database settings against best practices for the specific platform.
+    Requires AWS credentials and boto3.
+    """
+    if not AWS_AVAILABLE:
+        return "Error: boto3 not installed. Run: pip install boto3"
+    if not instance_id:
+        instance_id = _detect_instance_from_host()
+        if not instance_id:
+            return "Error: Could not detect instance ID from PGHOST. Provide instance_id explicitly."
+
+    region = _get_aws_region()
+    try:
+        rds = boto3.client("rds", region_name=region)
+        # Get instance info
+        try:
+            resp = rds.describe_db_instances(DBInstanceIdentifier=instance_id)
+            inst = resp["DBInstances"][0]
+        except rds.exceptions.DBInstanceNotFoundFault:
+            # Try cluster, get writer
+            resp = rds.describe_db_clusters(DBClusterIdentifier=instance_id)
+            cluster = resp["DBClusters"][0]
+            members = cluster.get("DBClusterMembers", [])
+            writer = [m for m in members if m.get("IsClusterWriter")]
+            member_id = writer[0]["DBInstanceIdentifier"] if writer else members[0]["DBInstanceIdentifier"]
+            resp = rds.describe_db_instances(DBInstanceIdentifier=member_id)
+            inst = resp["DBInstances"][0]
+
+        engine = inst["Engine"]
+        instance_class = inst["DBInstanceClass"]
+        ram_gib = INSTANCE_MEMORY_MAP.get(instance_class, 0)
+        ram_mb = ram_gib * 1024
+        is_aurora = "aurora" in engine
+
+        # Get current settings from database
+        conn = _get_connection()
+        params = _execute_query(conn, (
+            "SELECT name, setting, unit FROM pg_settings "
+            "WHERE name IN ('shared_buffers','work_mem','maintenance_work_mem',"
+            "'effective_cache_size','random_page_cost','max_connections')"
+        ))
+        conn.close()
+
+        current = {}
+        for p in params:
+            name = p["name"]
+            setting = int(p["setting"]) if p["setting"].isdigit() else p["setting"]
+            unit = p.get("unit", "")
+            if unit == "8kB":
+                current[name] = setting * 8 / 1024  # Convert to MB
+            elif unit == "kB":
+                current[name] = setting / 1024  # Convert to MB
+            else:
+                current[name] = setting
+
+        # Calculate recommendations
+        recommendations = []
+        recommendations.append(f"**Instance:** {instance_class} ({ram_gib} GiB RAM)")
+        recommendations.append(f"**Engine:** {engine}")
+        recommendations.append("")
+
+        # shared_buffers
+        if is_aurora:
+            recommended_sb = int(ram_mb * 0.75)
+            recommendations.append(f"| shared_buffers | {int(current.get('shared_buffers', 0))} MB | {recommended_sb} MB | 75% RAM (Aurora default, managed) |")
+        else:
+            recommended_sb = int(ram_mb * 0.25)
+            recommendations.append(f"| shared_buffers | {int(current.get('shared_buffers', 0))} MB | {recommended_sb} MB | 25% RAM for RDS |")
+
+        # effective_cache_size
+        if is_aurora:
+            recommended_ecs = recommended_sb
+            recommendations.append(f"| effective_cache_size | {int(current.get('effective_cache_size', 0))} MB | {recommended_ecs} MB | = shared_buffers on Aurora (no OS cache) |")
+        else:
+            recommended_ecs = int(ram_mb * 0.75)
+            recommendations.append(f"| effective_cache_size | {int(current.get('effective_cache_size', 0))} MB | {recommended_ecs} MB | 75% RAM for RDS |")
+
+        # work_mem
+        max_conn = current.get("max_connections", 100)
+        # Heuristic: RAM / (max_connections * 4) but minimum 4MB, max 256MB
+        recommended_wm = min(256, max(4, int(ram_mb / (max_conn * 4))))
+        recommendations.append(f"| work_mem | {int(current.get('work_mem', 0))} MB | {recommended_wm} MB | RAM/(max_conn*4), range 4-256 MB |")
+
+        # maintenance_work_mem
+        recommended_mwm = min(2048, int(ram_mb * 0.05))
+        recommendations.append(f"| maintenance_work_mem | {int(current.get('maintenance_work_mem', 0))} MB | {recommended_mwm} MB | 5% RAM, max 2 GB |")
+
+        # random_page_cost
+        rpc = current.get("random_page_cost", 4)
+        if is_aurora:
+            recommendations.append(f"| random_page_cost | {rpc} | 1.1 | SSD storage (Aurora) |")
+        else:
+            recommendations.append(f"| random_page_cost | {rpc} | 1.1 | SSD storage (gp2/gp3/io1) |")
+
+        header = "| Parameter | Current | Recommended | Reason |\n| --- | --- | --- | --- |"
+        return "\n".join(recommendations[:3]) + "\n" + header + "\n" + "\n".join(recommendations[3:])
+
+    except Exception as e:
+        return f"Error generating recommendations: {str(e)}"
+
+
+@mcp.tool()
+def get_slow_queries_from_logs(instance_id: str = "", minutes: int = 60) -> str:
+    """
+    Query CloudWatch Logs for slow queries logged by log_min_duration_statement.
+    Searches the PostgreSQL log group for the specified RDS/Aurora instance.
+    Returns the top slow queries from the last N minutes (default: 60).
+    Requires AWS credentials and boto3.
+    """
+    if not AWS_AVAILABLE:
+        return "Error: boto3 not installed. Run: pip install boto3"
+    if not instance_id:
+        instance_id = _detect_instance_from_host()
+        if not instance_id:
+            return "Error: Could not detect instance ID from PGHOST. Provide instance_id explicitly."
+
+    region = _get_aws_region()
+    try:
+        logs = boto3.client("logs", region_name=region)
+
+        # Try common log group patterns
+        log_groups_to_try = [
+            f"/aws/rds/cluster/{instance_id}/postgresql",
+            f"/aws/rds/instance/{instance_id}/postgresql",
+        ]
+
+        log_group = None
+        for lg in log_groups_to_try:
+            try:
+                logs.describe_log_groups(logGroupNamePrefix=lg)
+                log_group = lg
+                break
+            except Exception:
+                continue
+
+        if not log_group:
+            return (
+                f"Error: No CloudWatch log group found for '{instance_id}'. "
+                f"Tried: {', '.join(log_groups_to_try)}. "
+                "Ensure PostgreSQL logging is enabled and published to CloudWatch."
+            )
+
+        import time
+        end_time = int(time.time() * 1000)
+        start_time = end_time - (minutes * 60 * 1000)
+
+        # CloudWatch Logs Insights query for slow queries
+        query = (
+            "fields @timestamp, @message "
+            "| filter @message like /duration:/ "
+            "| sort @timestamp desc "
+            "| limit 25"
+        )
+
+        response = logs.start_query(
+            logGroupName=log_group,
+            startTime=start_time,
+            endTime=end_time,
+            queryString=query,
+        )
+        query_id = response["queryId"]
+
+        # Poll for results (max 15 seconds)
+        import time as time_mod
+        for _ in range(15):
+            time_mod.sleep(1)
+            result = logs.get_query_results(queryId=query_id)
+            if result["status"] == "Complete":
+                break
+
+        if result["status"] != "Complete":
+            return "Error: CloudWatch Logs Insights query timed out."
+
+        results = result.get("results", [])
+        if not results:
+            return f"No slow queries found in the last {minutes} minutes in {log_group}."
+
+        lines = [f"**Slow Queries (last {minutes} min) from {log_group}**\n"]
+        lines.append("| Timestamp | Duration | Query |")
+        lines.append("| --- | --- | --- |")
+        for row in results[:25]:
+            fields = {f["field"]: f["value"] for f in row}
+            msg = fields.get("@message", "")
+            ts = fields.get("@timestamp", "")
+            # Extract duration from message
+            duration = ""
+            if "duration:" in msg:
+                parts = msg.split("duration:")
+                if len(parts) > 1:
+                    duration = parts[1].split(" ms")[0].strip() + " ms"
+            query_text = msg[-150:] if len(msg) > 150 else msg
+            lines.append(f"| {ts[:19]} | {duration} | {query_text[:100]} |")
+
+        return "\n".join(lines)
+
+    except Exception as e:
+        return f"Error querying CloudWatch Logs: {str(e)}"
 
 
 # ============================================================
