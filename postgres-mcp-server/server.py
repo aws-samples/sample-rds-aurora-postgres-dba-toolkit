@@ -446,23 +446,6 @@ QUERY_ALLOWLIST["9"] = {
 }
 
 
-# ============================================================
-# Database Connection Helper
-# ============================================================
-
-def _get_db_credentials(secret_arn: str) -> dict:
-    """Retrieve database credentials from Secrets Manager."""
-    response = secretsmanager_client.get_secret_value(SecretId=secret_arn)
-    return json.loads(response["SecretString"])
-
-
-def _get_connection(instance_endpoint: str, port: int, database: str, secret_arn: str):
-    """Create a pg8000 connection using credentials from Secrets Manager."""
-    import logging
-    import ssl
-    logger = logging.getLogger(__name__)
-    
-    logger.info(f"Getting credentials from Secrets Manager: {secret_arn[:50]}...")
 QUERY_ALLOWLIST["10"] = {
     "_category": "Pre-Upgrade Checks",
     "10.1": {
@@ -625,3 +608,125 @@ QUERY_ALLOWLIST["11"] = {
             "SELECT relname, "
             "round(100.0 * n_tup_upd / NULLIF(n_tup_ins + n_tup_upd + n_tup_del, 0), 2) AS update_pct, "
             "round(100.0 * n_tup_del / NULLIF(n_tup_ins + n_tup_upd + n_tup_del, 0), 2) AS delete_pct, "
+            "round(100.0 * n_tup_ins / NULLIF(n_tup_ins + n_tup_upd + n_tup_del, 0), 2) AS insert_pct, "
+            "n_tup_ins + n_tup_upd + n_tup_del AS total_ops "
+            "FROM pg_stat_user_tables "
+            "WHERE (n_tup_ins + n_tup_upd + n_tup_del) > 0 "
+            "ORDER BY coalesce(n_tup_upd,0) + coalesce(n_tup_del,0) DESC LIMIT 10"
+        ),
+    },
+}
+
+
+# ============================================================
+# Tool Definitions
+# ============================================================
+
+def _flat_queries() -> dict:
+    """Flatten the nested QUERY_ALLOWLIST into a single dict keyed by query ID."""
+    flat = {}
+    for cat_id, cat_dict in QUERY_ALLOWLIST.items():
+        for key, val in cat_dict.items():
+            if key.startswith("_"):
+                continue
+            flat[key] = val
+    return flat
+
+
+@mcp.tool()
+def list_health_queries() -> str:
+    """List all available diagnostic queries organized by category."""
+    lines = []
+    for cat_id in sorted(QUERY_ALLOWLIST.keys(), key=lambda x: float(x)):
+        cat = QUERY_ALLOWLIST[cat_id]
+        cat_name = cat.get("_category", f"Category {cat_id}")
+        lines.append(f"\n## Category {cat_id}: {cat_name}")
+        for qid in sorted(
+            [k for k in cat if not k.startswith("_")], key=lambda x: float(x)
+        ):
+            lines.append(f"  - **{qid}**: {cat[qid]['name']}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def execute_health_query(query_id: str) -> str:
+    """
+    Execute a predefined diagnostic query by its ID (e.g., '1.1', '7.3', '10.1').
+    Use list_health_queries() to see all available query IDs.
+    """
+    flat = _flat_queries()
+    if query_id not in flat:
+        return f"Error: Query ID '{query_id}' not found. Use list_health_queries() to see available IDs."
+    query = flat[query_id]
+    try:
+        conn = _get_connection()
+        results = _execute_query(conn, query["sql"])
+        conn.close()
+        return _format_results_table(results, f"{query_id}: {query['name']}")
+    except Exception as e:
+        return f"Error executing query {query_id}: {str(e)}"
+
+
+@mcp.tool()
+def run_health_check() -> str:
+    """
+    Run a quick health triage: cache hit ratio, dead tuples, connections,
+    XID wraparound risk, and unused indexes. Returns a summary report.
+    """
+    triage_queries = ["6.3", "5.2", "3.1", "7.3", "8.1"]
+    results = []
+    try:
+        conn = _get_connection()
+        for qid in triage_queries:
+            flat = _flat_queries()
+            if qid in flat:
+                query = flat[qid]
+                rows = _execute_query(conn, query["sql"])
+                results.append(_format_results_table(rows, f"{qid}: {query['name']}"))
+        conn.close()
+    except Exception as e:
+        return f"Error running health check: {str(e)}"
+    return "\n\n---\n\n".join(results)
+
+
+@mcp.tool()
+def explain_query(sql: str) -> str:
+    """
+    Run EXPLAIN (not EXECUTE) on a SELECT query to show the execution plan.
+    Only SELECT statements are allowed.
+    """
+    stripped = sql.strip().rstrip(";")
+    if not stripped.upper().startswith("SELECT"):
+        return "Error: Only SELECT queries can be explained. Provide a SELECT statement."
+    try:
+        conn = _get_connection()
+        explain_sql = f"EXPLAIN (FORMAT TEXT, VERBOSE, COSTS, BUFFERS) {stripped}"
+        rows = conn.run(explain_sql)
+        conn.close()
+        plan_lines = [row[0] for row in rows]
+        return "```\n" + "\n".join(plan_lines) + "\n```"
+    except Exception as e:
+        return f"Error explaining query: {str(e)}"
+
+
+# ============================================================
+# Entry Point
+# ============================================================
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="PostgreSQL DBA MCP Server")
+    parser.add_argument("--host", default=os.environ.get("PGHOST", "localhost"))
+    parser.add_argument("--port", type=int, default=int(os.environ.get("PGPORT", "5432")))
+    parser.add_argument("--database", default=os.environ.get("PGDATABASE", "postgres"))
+    parser.add_argument("--user", default=os.environ.get("PGUSER", "postgres"))
+    parser.add_argument("--password", default=os.environ.get("PGPASSWORD", ""))
+    args = parser.parse_args()
+
+    # Override globals with command-line args
+    DB_HOST = args.host
+    DB_PORT = args.port
+    DB_NAME = args.database
+    DB_USER = args.user
+    DB_PASSWORD = args.password
+
+    mcp.run(transport="stdio")
