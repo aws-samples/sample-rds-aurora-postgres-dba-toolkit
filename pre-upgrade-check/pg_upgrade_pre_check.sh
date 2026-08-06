@@ -114,6 +114,15 @@ read TDBVER
 echo -n -e "Company Name (with no space): "
 read COMNAME
 
+# Database scope selection
+echo ""
+echo "Check databases:"
+echo "1) Single database (current: $DBNAME)"
+echo "2) All user databases (iterate automatically)"
+echo -n "Enter your choice (1 or 2): "
+read DB_SCOPE_CHOICE
+DB_SCOPE_CHOICE=${DB_SCOPE_CHOICE:-1}
+
 # Test database connection
 case $AUTH_CHOICE in
     1)
@@ -140,6 +149,15 @@ if [ "$?" -gt "0" ]; then
     exit 1
 else
     echo "PostgreSQL instance $EP is running. Creating report."
+fi
+
+# Build database list based on scope choice
+if [ "$DB_SCOPE_CHOICE" == "2" ]
+then
+  DB_LIST=`$PSQLCL -t -A -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname NOT IN ('rdsadmin') ORDER BY datname;"`
+  echo "Databases to check: $DB_LIST"
+else
+  DB_LIST="$DBNAME"
 fi
 
 #Check RDS or Aurora PostgreSQL
@@ -397,6 +415,11 @@ else
 echo "<font face="verdana" color="red">The pg_upgrade utility doesn't support upgrading databases that include table columns using the reg* OID-referencing system data types. Remove all uses of reg* data types, except for regclass, regrole, and regtype, before attempting an upgrade. $REGTYPECNT unsupported reg* data types found as below. Please change data types of associated colums to avoid upgrade failure. Only regclass, regrole, and regtype data types are supported. Please use below query to find out unsupported reg* OID-referencing data types columns:</font>" >> $html
 echo "<br>" >> $html
 echo "$SQL3" >> $html
+echo "<br>" >> $html
+# Show actual affected tables/columns
+REGSQL_DETAIL="SELECT n.nspname AS schema, c.relname AS table_name, a.attname AS column_name, a.atttypid::regtype::text AS data_type FROM pg_catalog.pg_class c, pg_catalog.pg_namespace n, pg_catalog.pg_attribute a WHERE c.oid = a.attrelid AND NOT a.attisdropped AND a.atttypid IN ('pg_catalog.regproc'::pg_catalog.regtype,'pg_catalog.regprocedure'::pg_catalog.regtype,'pg_catalog.regoper'::pg_catalog.regtype,'pg_catalog.regoperator'::pg_catalog.regtype,'pg_catalog.regconfig'::pg_catalog.regtype,'pg_catalog.regdictionary'::pg_catalog.regtype) AND c.relnamespace = n.oid AND n.nspname NOT IN ('pg_catalog', 'information_schema');"
+echo "<br><font face="verdana" color="red"><b>Affected tables and columns:</b></font><br>" >> $html
+echo "`$PSQLCL --html -c "$REGSQL_DETAIL"|sed '$d'|sed '$d' ` " >>$html
 fi
 
 echo "<br>" >> $html
@@ -697,6 +720,277 @@ then
   echo "<br>" >> $html
   echo "<br>" >> $html
 fi
+
+# Check for pending maintenance actions
+echo "<font face="verdana" color="#ff6600">18. Check for pending maintenance actions: </font>" >>$html
+echo "<br>" >> $html
+if [ "$DBTYPE" == "aurora-postgresql" ]
+then
+  # For Aurora, get the cluster ARN first
+  CLUSTER_ARN=`aws rds describe-db-clusters --db-cluster-identifier $CLUSNAME --region $REGNAME --query 'DBClusters[0].DBClusterArn' --output text 2>/dev/null`
+  if [ -n "$CLUSTER_ARN" ] && [ "$CLUSTER_ARN" != "None" ]
+  then
+    PENDING_MAINT=`aws rds describe-pending-maintenance-actions --resource-identifier $CLUSTER_ARN --region $REGNAME --query 'PendingMaintenanceActions[*].PendingMaintenanceActionDetails[*].{Action:Action,AutoApplyDate:AutoAppliedAfterDate,CurrentApplyDate:CurrentApplyDate,Description:Description}' --output table 2>/dev/null`
+  fi
+else
+  # For RDS, get the instance ARN
+  INSTANCE_ARN=`aws rds describe-db-instances --db-instance-identifier $RDSNAME --region $REGNAME --query 'DBInstances[0].DBInstanceArn' --output text 2>/dev/null`
+  if [ -n "$INSTANCE_ARN" ] && [ "$INSTANCE_ARN" != "None" ]
+  then
+    PENDING_MAINT=`aws rds describe-pending-maintenance-actions --resource-identifier $INSTANCE_ARN --region $REGNAME --query 'PendingMaintenanceActions[*].PendingMaintenanceActionDetails[*].{Action:Action,AutoApplyDate:AutoAppliedAfterDate,CurrentApplyDate:CurrentApplyDate,Description:Description}' --output table 2>/dev/null`
+  fi
+fi
+
+if [ -z "$PENDING_MAINT" ] || echo "$PENDING_MAINT" | grep -q "None"
+then
+  echo "<font face="verdana" color="green">No pending maintenance actions found. The upgrade will not trigger additional maintenance tasks that could extend downtime.</font>" >> $html
+else
+  echo "<font face="verdana" color="orange"><b>WARNING:</b> Pending maintenance actions detected. These may be applied during the upgrade restart, potentially extending the downtime window beyond what the upgrade alone requires. Review and apply these separately before upgrading if you want predictable upgrade duration:</font>" >> $html
+  echo "<br>" >> $html
+  echo "<pre>$PENDING_MAINT</pre>" >> $html
+fi
+echo "<br>" >> $html
+echo "<br>" >> $html
+
+# Multi-database pre-upgrade check (per-database issues across all databases)
+if [ "$DB_SCOPE_CHOICE" == "2" ]
+then
+echo "<font face="verdana" color="#ff6600">--- Per-Database Pre-Upgrade Summary (All Databases) ---</font>" >>$html
+echo "<br>" >> $html
+echo "<font face="verdana" color="#808080">Checking per-database upgrade blockers across all user databases...</font>" >> $html
+echo "<br><br>" >> $html
+
+for CHECKDB in $DB_LIST
+do
+  # Build per-database psql command
+  case $AUTH_CHOICE in
+    1) DBPSQLCL="psql -h $EP -p $RDSPORT -U $MASTERUSER -d $CHECKDB" ;;
+    2) DBPSQLCL="psql \"host=$EP port=$RDSPORT dbname=$CHECKDB user=$MASTERUSER password=$TOKEN sslmode=verify-full sslrootcert=$REGNAME-bundle.pem\"" ;;
+  esac
+
+  echo "<font face="verdana" color="#0099cc"><b>Database: $CHECKDB</b></font>" >>$html
+  echo "<br>" >> $html
+
+  # Check reg* data types in this database
+  DBREGCNT=`$DBPSQLCL -c "SELECT count(*) FROM pg_catalog.pg_class c, pg_catalog.pg_namespace n, pg_catalog.pg_attribute a WHERE c.oid = a.attrelid AND NOT a.attisdropped AND a.atttypid IN ('pg_catalog.regproc'::pg_catalog.regtype,'pg_catalog.regprocedure'::pg_catalog.regtype,'pg_catalog.regoper'::pg_catalog.regtype,'pg_catalog.regoperator'::pg_catalog.regtype,'pg_catalog.regconfig'::pg_catalog.regtype,'pg_catalog.regdictionary'::pg_catalog.regtype) AND c.relnamespace = n.oid AND n.nspname NOT IN ('pg_catalog', 'information_schema');" 2>/dev/null | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+  if [ -n "$DBREGCNT" ] && [ "$DBREGCNT" -gt "0" ] 2>/dev/null
+  then
+    echo "<font face="verdana" color="red">&nbsp;&nbsp;&#x2716; reg* data types: $DBREGCNT unsupported reg* columns found (UPGRADE BLOCKER)</font>" >> $html
+    echo "<br>" >> $html
+    echo "`$DBPSQLCL --html -c "SELECT n.nspname AS schema, c.relname AS table_name, a.attname AS column_name, a.atttypid::regtype::text AS data_type FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid JOIN pg_catalog.pg_attribute a ON c.oid = a.attrelid WHERE NOT a.attisdropped AND a.atttypid IN ('pg_catalog.regproc'::pg_catalog.regtype,'pg_catalog.regprocedure'::pg_catalog.regtype,'pg_catalog.regoper'::pg_catalog.regtype,'pg_catalog.regoperator'::pg_catalog.regtype,'pg_catalog.regconfig'::pg_catalog.regtype,'pg_catalog.regdictionary'::pg_catalog.regtype) AND c.relnamespace = n.oid AND n.nspname NOT IN ('pg_catalog', 'information_schema');" 2>/dev/null |sed '$d'|sed '$d' ` " >>$html
+  else
+    echo "<font face="verdana" color="green">&nbsp;&nbsp;&#x2714; reg* data types: None found</font>" >> $html
+  fi
+  echo "<br>" >> $html
+
+  # Check sql_identifier in this database
+  DBSQLID=`$DBPSQLCL -c "SELECT count(*) FROM pg_attribute WHERE atttypid::regtype::text LIKE '%sql_identifier' AND attrelid IN (SELECT oid FROM pg_class WHERE relnamespace IN (SELECT oid FROM pg_namespace WHERE nspname NOT IN ('information_schema','oracle','pg_catalog')));" 2>/dev/null | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+  if [ -n "$DBSQLID" ] && [ "$DBSQLID" -gt "0" ] 2>/dev/null
+  then
+    echo "<font face="verdana" color="orange">&nbsp;&nbsp;&#x26A0; sql_identifier: $DBSQLID columns found</font>" >> $html
+  else
+    echo "<font face="verdana" color="green">&nbsp;&nbsp;&#x2714; sql_identifier: None found</font>" >> $html
+  fi
+  echo "<br>" >> $html
+
+  # Check extensions in this database
+  DBEXTCNT=`$DBPSQLCL -c "SELECT COUNT(*) FROM pg_catalog.pg_extension e LEFT JOIN pg_catalog.pg_namespace n ON n.oid = e.extnamespace WHERE n.nspname NOT LIKE 'pg_catalog';" 2>/dev/null | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+  if [ -n "$DBEXTCNT" ] && [ "$DBEXTCNT" -gt "0" ] 2>/dev/null
+  then
+    echo "<font face="verdana" color="orange">&nbsp;&nbsp;&#x2139; Extensions: $DBEXTCNT user extensions installed (verify compatibility with target version)</font>" >> $html
+    echo "<br>" >> $html
+    echo "`$DBPSQLCL --html -c "SELECT e.extname AS name, e.extversion AS version FROM pg_catalog.pg_extension e LEFT JOIN pg_catalog.pg_namespace n ON n.oid = e.extnamespace WHERE n.nspname NOT LIKE 'pg_catalog' ORDER BY e.extname;" 2>/dev/null |sed '$d'|sed '$d' ` " >>$html
+  else
+    echo "<font face="verdana" color="green">&nbsp;&nbsp;&#x2714; Extensions: No user extensions</font>" >> $html
+  fi
+  echo "<br>" >> $html
+
+  # Check views on system catalogs in this database
+  DBVIEWCNT=`$DBPSQLCL -c "SELECT count(*) FROM pg_catalog.pg_class c LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind IN ('v','m') AND n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname !~ '^pg_toast' AND pg_catalog.pg_table_is_visible(c.oid) AND pg_catalog.pg_get_userbyid(c.relowner) NOT LIKE 'rdsadmin';" 2>/dev/null | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+  if [ -n "$DBVIEWCNT" ] && [ "$DBVIEWCNT" -gt "0" ] 2>/dev/null
+  then
+    echo "<font face="verdana" color="orange">&nbsp;&nbsp;&#x26A0; Views: $DBVIEWCNT user views found (review for system catalog dependencies post-upgrade)</font>" >> $html
+  else
+    echo "<font face="verdana" color="green">&nbsp;&nbsp;&#x2714; Views: No user views dependent on system catalogs</font>" >> $html
+  fi
+  echo "<br><br>" >> $html
+
+done
+echo "<br>" >> $html
+fi
+
+#Version-pair-specific upgrade checks
+echo "<font face="verdana" color="#ff6600">18. Version-specific upgrade considerations ($DBVER → $TDBVER): </font>" >>$html
+echo "<br>" >> $html
+
+# Extract major versions for comparison
+MAJOR_FROM=$(echo $DBVER | cut -d. -f1)
+MAJOR_TO=$(echo $TDBVER | cut -d. -f1)
+
+# --- Upgrading FROM 12/13 TO 14+ : password_encryption default change ---
+if [ "$MAJOR_FROM" -le "13" ] && [ "$MAJOR_TO" -ge "14" ]
+then
+  echo "<font face="verdana" color="#ff6600">&nbsp;&nbsp;18a. password_encryption default changes (md5 → scram-sha-256 in PG14): </font>" >>$html
+  echo "<br>" >> $html
+  PWENC=`$PSQLCL -c "SHOW password_encryption;" | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+  if [ "$PWENC" == "md5" ]
+  then
+    echo "<font face="verdana" color="orange">Current password_encryption is 'md5'. In PG14+, the default changes to 'scram-sha-256'. After upgrade, newly created passwords will use SCRAM. Ensure all client libraries support SCRAM authentication (libpq 10+, JDBC 42.2.0+). Existing MD5 passwords continue to work until reset.</font>" >> $html
+  else
+    echo "<font face="verdana" color="green">password_encryption is already '$PWENC'. No compatibility concern for this upgrade.</font>" >> $html
+  fi
+  echo "<br>" >> $html
+  echo "<br>" >> $html
+fi
+
+# --- Upgrading FROM 12/13 TO 14+ : vacuum_cleanup_index_scale_factor removed ---
+if [ "$MAJOR_FROM" -le "13" ] && [ "$MAJOR_TO" -ge "14" ]
+then
+  echo "<font face="verdana" color="#ff6600">&nbsp;&nbsp;18b. Removed parameter: vacuum_cleanup_index_scale_factor (removed in PG14): </font>" >>$html
+  echo "<br>" >> $html
+  VCISF=`$PSQLCL -c "SELECT name, setting FROM pg_settings WHERE name='vacuum_cleanup_index_scale_factor';" | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+  if [ -z "$VCISF" ] || [ "$VCISF" == "(0rows)" ]
+  then
+    echo "<font face="verdana" color="green">vacuum_cleanup_index_scale_factor is not set or already removed. No issue.</font>" >> $html
+  else
+    echo "<font face="verdana" color="orange">vacuum_cleanup_index_scale_factor is set in the current version. This parameter is removed in PG14. It will be silently dropped during upgrade. If you relied on this for index cleanup tuning, use vacuum_index_cleanup per-table storage parameter instead.</font>" >> $html
+  fi
+  echo "<br>" >> $html
+  echo "<br>" >> $html
+fi
+
+# --- Upgrading TO 15+ : hash_mem_multiplier default change (1.0 → 2.0) ---
+if [ "$MAJOR_FROM" -le "14" ] && [ "$MAJOR_TO" -ge "15" ]
+then
+  echo "<font face="verdana" color="#ff6600">&nbsp;&nbsp;18c. hash_mem_multiplier default changes (1.0 → 2.0 in PG15): </font>" >>$html
+  echo "<br>" >> $html
+  HMM=`$PSQLCL -c "SHOW hash_mem_multiplier;" 2>/dev/null | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+  WORKMEM=`$PSQLCL -c "SHOW work_mem;" | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+  MAXCONN=`$PSQLCL -c "SHOW max_connections;" | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+  if [ -z "$HMM" ] || [ "$HMM" == "1" ] || [ "$HMM" == "1.0" ]
+  then
+    echo "<font face="verdana" color="orange">hash_mem_multiplier is at 1.0 (PG14 default). After upgrading to PG15+, the default changes to 2.0. Hash operations (hash joins, hash aggregates) will use up to 2x more memory per operation. Current work_mem=$WORKMEM with max_connections=$MAXCONN. Review your memory budget: worst-case hash memory doubles. If you experience OOM after upgrade, explicitly set hash_mem_multiplier=1.0 in the parameter group to restore old behavior.</font>" >> $html
+  else
+    echo "<font face="verdana" color="green">hash_mem_multiplier is explicitly set to $HMM. This explicit value will carry through the upgrade. No unexpected change.</font>" >> $html
+  fi
+  echo "<br>" >> $html
+  echo "<br>" >> $html
+fi
+
+# --- Upgrading TO 18+ : max_parallel_workers_per_gather default change (2 → 0) ---
+if [ "$MAJOR_TO" -ge "18" ]
+then
+  echo "<font face="verdana" color="#ff6600">&nbsp;&nbsp;18d. max_parallel_workers_per_gather default changes (2 → 0 in PG18): </font>" >>$html
+  echo "<br>" >> $html
+  MPWPG=`$PSQLCL -c "SHOW max_parallel_workers_per_gather;" | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+  if [ "$MPWPG" == "2" ] || [ "$MPWPG" == "0" ]
+  then
+    if [ "$MPWPG" == "2" ]
+    then
+      echo "<font face="verdana" color="orange"><b>IMPORTANT:</b> max_parallel_workers_per_gather is at the current default (2). In PG18, this default changes to 0 (parallel query disabled by default). If your workload relies on parallel queries (analytics, reporting, large aggregates), you MUST explicitly set max_parallel_workers_per_gather=2 (or higher) in your parameter group before upgrading. Otherwise, parallel queries will stop working after upgrade and performance may regress significantly for analytical workloads.</font>" >> $html
+    else
+      echo "<font face="verdana" color="green">max_parallel_workers_per_gather is already 0. PG18 default matches. No change expected.</font>" >> $html
+    fi
+  else
+    echo "<font face="verdana" color="green">max_parallel_workers_per_gather is explicitly set to $MPWPG. This explicit value will carry through the upgrade.</font>" >> $html
+  fi
+  echo "<br>" >> $html
+  echo "<br>" >> $html
+fi
+
+# --- Upgrading FROM 15 TO 16+ : ICU collation version tracking strictness ---
+if [ "$MAJOR_FROM" -le "15" ] && [ "$MAJOR_TO" -ge "16" ]
+then
+  echo "<font face="verdana" color="#ff6600">&nbsp;&nbsp;18d-i. PostgreSQL 16 ICU collation version tracking: </font>" >>$html
+  echo "<br>" >> $html
+  echo "<font face="verdana" color="orange">PostgreSQL 16 introduces stricter ICU collation version tracking. After upgrade, the system will detect if the underlying ICU library version changed, which may require REINDEX on indexes using ICU collations. Run: SELECT indexrelid::regclass, collname FROM pg_index i JOIN pg_depend d ON d.objid = i.indexrelid JOIN pg_collation c ON c.oid = d.refobjid WHERE c.collprovider = 'i'; to identify affected indexes. Post-upgrade, check pg_index for indisvalid = false entries.</font>" >> $html
+  echo "<br>" >> $html
+  echo "<br>" >> $html
+fi
+
+# --- Upgrading FROM 15 TO 16+ : vacuum_buffer_usage_limit new parameter ---
+if [ "$MAJOR_FROM" -le "15" ] && [ "$MAJOR_TO" -ge "16" ]
+then
+  echo "<font face="verdana" color="#ff6600">&nbsp;&nbsp;18d-ii. New parameter in PG16: vacuum_buffer_usage_limit (default 256kB): </font>" >>$html
+  echo "<br>" >> $html
+  echo "<font face="verdana" color="orange">PostgreSQL 16 introduces vacuum_buffer_usage_limit (default 256kB) which limits how much of the shared buffer pool VACUUM can use. This prevents vacuum from evicting frequently-accessed cached data. If you have custom vacuum tuning that expects vacuum to freely use the buffer cache, review this parameter after upgrade. For most workloads, the default is appropriate.</font>" >> $html
+  echo "<br>" >> $html
+  echo "<br>" >> $html
+fi
+
+# --- Upgrading TO 16+ : Logical replication from standby ---
+if [ "$MAJOR_TO" -ge "16" ]
+then
+  LOGREPCNT=`$PSQLCL -c "SELECT COUNT(*) FROM pg_replication_slots WHERE slot_type='logical';" | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+  if [ "$LOGREPCNT" -gt "0" ]
+  then
+    echo "<font face="verdana" color="#ff6600">&nbsp;&nbsp;18d-iii. Logical replication behavior change in PG16: </font>" >>$html
+    echo "<br>" >> $html
+    echo "<font face="verdana" color="orange">You have $LOGREPCNT logical replication slot(s). PostgreSQL 16 introduces logical replication from standbys. If using logical replication, review your slot configuration post-upgrade. Subscribers should be paused during the upgrade window and resumed after confirming slot health on the new version.</font>" >> $html
+    echo "<br>" >> $html
+    echo "<br>" >> $html
+  fi
+fi
+
+# --- Upgrading TO 17+ : New reserved keywords ---
+if [ "$MAJOR_FROM" -le "16" ] && [ "$MAJOR_TO" -ge "17" ]
+then
+  echo "<font face="verdana" color="#ff6600">&nbsp;&nbsp;18d-iv. PostgreSQL 17 behavioral changes: </font>" >>$html
+  echo "<br>" >> $html
+  echo "<font face="verdana" color="orange">PostgreSQL 17 introduces: 1) io_combine_limit parameter (default 128kB) affecting large sequential scan performance. 2) Incremental backup support via summarize_wal (default off). 3) Streaming I/O infrastructure changes that may alter I/O patterns. 4) pg_stat_statements query IDs may change — capture baselines before upgrade. If you have monitoring dashboards that track by query_id, they will break across the version boundary.</font>" >> $html
+  echo "<br>" >> $html
+  echo "<br>" >> $html
+fi
+
+# --- Upgrading any version: Check random_page_cost and effective_io_concurrency (Aurora recommendations) ---
+echo "<font face="verdana" color="#ff6600">&nbsp;&nbsp;18d-v. Parameter review opportunity (post-upgrade best practice): </font>" >>$html
+echo "<br>" >> $html
+RPC=`$PSQLCL -c "SHOW random_page_cost;" | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+EIC=`$PSQLCL -c "SHOW effective_io_concurrency;" | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+PARAM_ISSUES=""
+if [ "$RPC" == "4" ]
+then
+  PARAM_ISSUES="${PARAM_ISSUES}random_page_cost=4.0 (recommend 1.1 for Aurora/RDS SSD storage). "
+fi
+if [ "$EIC" == "1" ]
+then
+  PARAM_ISSUES="${PARAM_ISSUES}effective_io_concurrency=1 (recommend 200 for Aurora SSD storage). "
+fi
+if [ -n "$PARAM_ISSUES" ]
+then
+  echo "<font face="verdana" color="orange">Post-upgrade parameter tuning opportunity: ${PARAM_ISSUES}These are upstream defaults designed for spinning disks. Aurora/RDS uses SSD storage. Consider updating after upgrade for better query performance. Both are dynamic (no restart needed).</font>" >> $html
+else
+  echo "<font face="verdana" color="green">random_page_cost ($RPC) and effective_io_concurrency ($EIC) are already tuned for SSD storage. No action needed.</font>" >> $html
+fi
+echo "<br>" >> $html
+echo "<br>" >> $html
+
+# --- Upgrading any version: pg_stat_statements data loss warning ---
+echo "<font face="verdana" color="#ff6600">&nbsp;&nbsp;18e. pg_stat_statements data will be cleared: </font>" >>$html
+echo "<br>" >> $html
+PGSSCNT=`$PSQLCL -c "SELECT COUNT(*) FROM pg_stat_statements;" 2>/dev/null | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+if [ -n "$PGSSCNT" ] && [ "$PGSSCNT" -gt "0" ] 2>/dev/null
+then
+  echo "<font face="verdana" color="orange">pg_stat_statements has $PGSSCNT entries. This data is stored in shared memory and will be lost during the upgrade restart. Recommendation: Snapshot your top queries before upgrade (SELECT * FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 100) to preserve performance baselines for comparison after upgrade. Query IDs may also change between major versions.</font>" >> $html
+else
+  echo "<font face="verdana" color="green">pg_stat_statements is empty or not installed. No data loss concern.</font>" >> $html
+fi
+echo "<br>" >> $html
+echo "<br>" >> $html
+
+# --- Upgrading any version: Check for pending parameter changes ---
+echo "<font face="verdana" color="#ff6600">&nbsp;&nbsp;18f. Check for pending parameter changes (applied during upgrade restart): </font>" >>$html
+echo "<br>" >> $html
+PENDCNT=`$PSQLCL -c "SELECT COUNT(*) FROM pg_settings WHERE pending_restart = true;" | awk 'c&&!--c;/----/{c=1}'|sed 's/ //g'`
+if [ "$PENDCNT" -gt "0" ]
+then
+  echo "<font face="verdana" color="orange"><b>WARNING:</b> $PENDCNT parameter(s) are pending restart. These will be applied during the upgrade restart. Verify these are intentional before upgrading:</font>" >> $html
+  echo "`$PSQLCL --html -c "SELECT name, setting, reset_val, source, context FROM pg_settings WHERE pending_restart = true ORDER BY name;"|sed '$d'|sed '$d' ` " >>$html
+else
+  echo "<font face="verdana" color="green">No pending parameter changes. Upgrade restart will not apply unexpected parameter modifications.</font>" >> $html
+fi
+echo "<br>" >> $html
+echo "<br>" >> $html
 
 #AWS docs
 echo "<font face="verdana" color="#ff6600">AWS documentations for Aurora/RDS Postgres upgrade: </font>" >>$html
