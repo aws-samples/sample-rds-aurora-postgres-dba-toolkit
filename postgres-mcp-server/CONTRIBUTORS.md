@@ -3,6 +3,7 @@
 ## Author
 
 - Vivek Singh
+- Shaily Porwal
 
 The current component documentation and Git history identify Vivek Singh as the author of the tracked MCP server implementation.
 
