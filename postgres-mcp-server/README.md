@@ -1,36 +1,51 @@
 # PostgreSQL DBA MCP Server (Open Source / Local)
 
-An open-source MCP (Model Context Protocol) server that provides safe, read-only diagnostic access to any PostgreSQL instance through AI-powered tools like Kiro, Claude Desktop, or Cursor.
+An open-source MCP (Model Context Protocol) server that provides safe, read-only diagnostic access to PostgreSQL through AI-powered tools such as Kiro, Claude Desktop, or Cursor.
 
-**Works with:** Amazon RDS for PostgreSQL, Amazon Aurora PostgreSQL, self-managed PostgreSQL (on-premises, EC2, Docker, any cloud).
+**Works with:** Amazon RDS for PostgreSQL, Amazon Aurora PostgreSQL, and self-managed PostgreSQL (on premises, EC2, Docker, or another cloud).
 
 ## What It Does
 
-Instead of manually running SQL queries and interpreting results, ask your AI assistant questions like:
+Instead of manually running SQL queries and interpreting results, ask your AI assistant questions such as:
 
 - "Run a health check on my database"
 - "Are there any tables with bloat?"
 - "Show me unused indexes wasting storage"
 - "What's the cache hit ratio?"
-- "Is my database ready for a major version upgrade?"
-- "Explain this slow query's execution plan"
+- "Run parameter tuning for my Aurora PostgreSQL cluster `my-cluster`"
+- "Show slow queries and auto_explain plans from CloudWatch Logs for the last 60 minutes"
+- "Run all pre-upgrade checks for my database"
+- "Explain this query's execution plan: `SELECT ...`"
 
-The MCP server runs 39 predefined, read-only diagnostic queries across 11 categories. No dynamic SQL, no writes, safe for production.
+The MCP server runs 39 predefined, read-only diagnostic queries across 11 categories. It does not accept dynamic SQL and does not modify database or AWS resources.
 
 ## Security Model
 
-- **Query-allowlist only**: the AI cannot generate or execute arbitrary SQL
-- **Read-only**: only SELECT queries against system catalogs and statistics views
-- **No data access**: queries only touch pg_stat_*, pg_catalog, and information_schema
-- **Safe for production**: even if the AI is prompt-injected, it can only run the 39 vetted queries
+- **Query allowlist only**: the AI cannot generate or execute arbitrary SQL.
+- **Read-only**: database queries are `SELECT` statements against system catalogs and statistics views.
+- **No customer-table reads**: queries use `pg_stat_*`, `pg_catalog`, and `information_schema` metadata.
+- **AWS-aware tools are read-only**: RDS and CloudWatch operations retrieve metadata or logs only.
+- **Safe for production diagnostics**: the MCP cannot change database parameters, reboot instances, delete resources, or execute DDL/DML.
 
 ## Quick Start
 
 ### Prerequisites
 
+All installations require:
+
 - Python 3.10+
-- Network access to your PostgreSQL instance
-- A database user with SELECT privileges on system catalogs
+- Network access from the MCP host to the PostgreSQL endpoint
+- A database user with the catalog and statistics privileges required by the read-only checks
+
+The AWS-aware tools (`get_instance_info`, `get_parameter_recommendations`, and `get_slow_queries_from_logs`) also require:
+
+- `boto3` (installed by `requirements.txt`)
+- Valid AWS credentials available to the MCP server process
+- `AWS_REGION` for the target database
+- A least-privilege AWS profile with `rds:DescribeDBInstances` and `rds:DescribeDBClusters`
+- For CloudWatch slow-query analysis: `logs:DescribeLogGroups`, `logs:StartQuery`, and `logs:GetQueryResults`
+
+Use temporary credentials or an approved credential process where available. Do not store access keys or session tokens in MCP configuration files.
 
 ### Install
 
@@ -42,9 +57,9 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Configure
+### Configure a Direct Database Connection
 
-Set connection details via environment variables:
+Set the PostgreSQL connection details through environment variables:
 
 ```bash
 export PGHOST=your-db-endpoint.region.rds.amazonaws.com
@@ -52,17 +67,45 @@ export PGPORT=5432
 export PGDATABASE=postgres
 export PGUSER=your_readonly_user
 export PGPASSWORD=your_password
+
+# Required only for AWS-aware tools
+export AWS_REGION=us-west-2
+export AWS_PROFILE=your-approved-readonly-profile
 ```
 
-Or pass via command line:
+Or pass PostgreSQL connection values on the command line:
 
 ```bash
 python server.py --host localhost --port 5432 --database mydb --user myuser --password mypass
 ```
 
-### Add to Your AI Tool
+### Connect Through an Existing Private-Network Tunnel
 
-#### Kiro
+The MCP does not create or manage SSH, SSM, or VPN tunnels. When the database endpoint is private, start an approved tunnel before launching or reconnecting the MCP server and keep it running for the diagnostic session.
+
+For example, if an approved tunnel forwards local port `5433` to the PostgreSQL endpoint on port `5432`:
+
+```bash
+# Run the approved tunnel command in a separate terminal.
+# Example shape only; obtain the bastion and authentication details from the service owner.
+ssh -L 5433:your-db-endpoint.region.rds.amazonaws.com:5432 your-approved-bastion -N
+
+# Verify the local tunnel from the MCP host.
+nc -vz -w 5 127.0.0.1 5433
+```
+
+Configure the MCP to connect through that listener:
+
+```bash
+export PGHOST=127.0.0.1
+export PGPORT=5433
+```
+
+When `PGHOST` is a local tunnel address, AWS-aware tools cannot infer the RDS or Aurora identifier from the hostname. Supply the cluster or instance identifier explicitly in the request, for example: `Run parameter tuning for Aurora cluster my-cluster`.
+
+## Add to Your AI Tool
+
+### Kiro
 
 Edit `~/.kiro/settings/mcp.json`:
 
@@ -77,16 +120,20 @@ Edit `~/.kiro/settings/mcp.json`:
         "PGPORT": "5432",
         "PGDATABASE": "postgres",
         "PGUSER": "readonly_user",
-        "PGPASSWORD": "your_password"
+        "PGPASSWORD": "your_password",
+        "AWS_REGION": "us-west-2",
+        "AWS_PROFILE": "your-approved-readonly-profile"
       }
     }
   }
 }
 ```
 
-> **Note:** Use the full path to the venv Python binary so MCP can find installed dependencies.
+For a local tunnel, use `127.0.0.1` and the local forwarded port for `PGHOST` and `PGPORT`. After changing the configuration or refreshing credentials, reconnect the MCP server in Kiro.
 
-#### Claude Desktop
+> **Note:** Use the full path to the virtual-environment Python binary so MCP can find installed dependencies. Do not commit a configuration file that contains database passwords.
+
+### Claude Desktop
 
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
@@ -101,14 +148,16 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
         "PGPORT": "5432",
         "PGDATABASE": "postgres",
         "PGUSER": "readonly_user",
-        "PGPASSWORD": "your_password"
+        "PGPASSWORD": "your_password",
+        "AWS_REGION": "us-west-2",
+        "AWS_PROFILE": "your-approved-readonly-profile"
       }
     }
   }
 }
 ```
 
-#### Cursor
+### Cursor
 
 Edit `.cursor/mcp.json` in your project root:
 
@@ -123,7 +172,9 @@ Edit `.cursor/mcp.json` in your project root:
         "PGPORT": "5432",
         "PGDATABASE": "postgres",
         "PGUSER": "readonly_user",
-        "PGPASSWORD": "your_password"
+        "PGPASSWORD": "your_password",
+        "AWS_REGION": "us-west-2",
+        "AWS_PROFILE": "your-approved-readonly-profile"
       }
     }
   }
@@ -134,10 +185,13 @@ Edit `.cursor/mcp.json` in your project root:
 
 | Tool | Description |
 |------|-------------|
-| `execute_health_query` | Run any of 39 predefined queries by category/ID |
-| `list_health_queries` | Show all available diagnostic queries |
-| `run_health_check` | Quick 5-query health triage |
-| `explain_query` | EXPLAIN plan for SELECT queries (never executes) |
+| `execute_health_query` | Run any of 39 predefined diagnostic queries by category and ID. |
+| `list_health_queries` | List the available predefined queries. |
+| `run_health_check` | Run the five-query health triage. |
+| `explain_query` | Run `EXPLAIN` for a supplied `SELECT` statement without executing it. |
+| `get_instance_info` | Retrieve RDS or Aurora engine, version, instance class, RAM, and status. Requires AWS credentials. |
+| `get_parameter_recommendations` | Compare live settings with platform-aware recommendations. Requires AWS credentials and database connectivity. |
+| `get_slow_queries_from_logs` | Read slow-query and `auto_explain` evidence from CloudWatch Logs. Requires AWS credentials, database connectivity, and published PostgreSQL logs. |
 
 ## Diagnostic Categories (39 queries)
 
@@ -149,11 +203,44 @@ Edit `.cursor/mcp.json` in your project root:
 | 4. Replication | 4.1-4.2 | Replication status, slot lag |
 | 5. Storage and Bloat | 5.1-5.3 | Table sizes, dead tuples, tablespaces |
 | 6. Performance | 6.1-6.4 | Top queries, cache hit ratio |
-| 7. Vacuum & Maintenance | 7.1-7.3 | Vacuum needs, XID wraparound |
-| 8. Index Optimization | 8.1-8.3 | Unused/duplicate indexes, scan ratios |
-| 9. Composite Health | 9.1 | Aggregated health metrics |
-| 10. Pre-Upgrade Checks | 10.1-10.8 | Upgrade blockers, extensions, reg* types |
-| 11. Extended Health | 11.1-11.6 | No-PK tables, invalid indexes, XID age |
+| 7. Vacuum and Maintenance | 7.1-7.3 | Vacuum needs, transaction ID wraparound |
+| 8. Index Optimization | 8.1-8.3 | Unused indexes, duplicate indexes, scan ratios |
+| 9. Summary Health Score | 9.1 | Composite health metrics |
+| 10. Pre-Upgrade Checks | 10.1-10.8 | Common blockers, extensions, replication slots, and catalog compatibility checks |
+| 11. Extended Health Checks | 11.1-11.6 | Primary keys, invalid indexes, sequence use, transaction ID age, and write-heavy tables |
+
+## Slow Queries From CloudWatch Logs
+
+Use a log-specific request when you want existing slow-query evidence rather than an estimated `EXPLAIN` result:
+
+> Show slow queries and auto_explain plans from CloudWatch Logs for Aurora cluster `my-cluster` from the last 60 minutes.
+
+The database must have `log_min_duration_statement` enabled, and actual plans require `auto_explain` to be loaded through `shared_preload_libraries`. PostgreSQL logs must be exported to CloudWatch Logs. If the logging prerequisites are not met, the tool reports the limitation and falls back to cumulative `pg_stat_statements` evidence when available.
+
+For an estimated plan for a known query, provide the query text:
+
+> Explain this query's execution plan: `SELECT ...`
+
+The MCP rejects `EXPLAIN ANALYZE` because it would execute the query.
+
+## Pre-Upgrade Checks
+
+Category 10 runs eight read-only checks for common PostgreSQL major-version upgrade blockers:
+
+- open prepared transactions
+- unsupported `reg*` data types
+- logical replication slots
+- unknown data types
+- `sql_identifier` usage
+- installed extensions
+- views dependent on system catalogs
+- current user privileges
+
+Use a request such as:
+
+> Run all pre-upgrade checks for Aurora cluster `my-cluster`.
+
+These checks provide generic readiness evidence. They do not certify a particular target version or replace Aurora's official pre-upgrade validation, extension compatibility review, or a rehearsed upgrade on a restored test environment. For a target-specific request such as an Aurora PostgreSQL 16 to 18 upgrade, confirm that the target engine version and every required extension are supported before scheduling the upgrade.
 
 ## Database User Setup
 
@@ -178,9 +265,9 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO mcp_readonly
 |---|---|---|
 | SQL access | 39 predefined queries only | AI generates any SQL |
 | Safety | Allowlist (strict) | Blocklist (best-effort) |
-| DBA knowledge | Built-in (thresholds, decision trees) | None (AI must figure it out) |
+| DBA knowledge | Built-in platform-aware recommendations and upgrade checks | None (AI must determine guidance) |
 | Scope | DBA diagnostics | General database access |
-| Risk | Minimal (can't run arbitrary SQL) | Higher (AI could run expensive queries) |
+| Risk | Minimal (cannot run arbitrary SQL) | Higher (AI can submit expensive queries) |
 
 ## Contributors and Contributing
 
