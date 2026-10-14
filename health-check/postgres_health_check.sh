@@ -29,7 +29,7 @@ read COMNAME
 RDSNAME="${EP%%.*}"
 html=${COMNAME}_${RDSNAME}_report_$(date +"%m-%d-%y").html
 
-PSQLCL="psql -h $EP  -p $RDSPORT -U $MASTERUSER $DBNAME"
+PSQLCL="psql -q -h $EP  -p $RDSPORT -U $MASTERUSER $DBNAME"
 PGPASSWORD=$MYPASS $PSQLCL -c "SET statement_timeout='60s' ; SET idle_in_transaction_session_timeout='60s'; SELECT now()" >/dev/null 2>&1
 if [ "$?" -gt "0" ]; then
 echo "Instance $EP cannot be connected. Stopping the script"
@@ -342,7 +342,7 @@ ECHOSB="Shared_buffers is $NUM3 GB and $RATIOSB% of total RAM."
 
 
 echo "PostgreSQL Engine Version: " >>$html
-echo `PGPASSWORD=$MYPASS $PSQLCL -c "SET statement_timeout='60s' ; SET idle_in_transaction_session_timeout='60s'; SELECT version()" |  grep -oP '(?<=PostgreSQL).*(?=on)'`  >>$html
+echo `PGPASSWORD=$MYPASS $PSQLCL -c "SET statement_timeout='60s' ; SET idle_in_transaction_session_timeout='60s'; SELECT version()" |  awk '/PostgreSQL/{print $2}'`  >>$html
 echo "<br>" >> $html
 echo "Maximum Connections :" >>$html
 echo  `PGPASSWORD=$MYPASS $PSQLCL -c "SET statement_timeout='60s' ; SET idle_in_transaction_session_timeout='60s'; show max_connections" | awk 'FNR== 3'`  >>$html
@@ -357,16 +357,16 @@ echo "<br>" >> $html
 
 echo "  [1/8] Collecting instance details and health score..."
 echo "<font face="verdana" color="#ff6600">PostgreSQL Health Score Card: </font>" >>$html
-CURRENT_VERSION=`PGPASSWORD=$MYPASS $PSQLCL -c "SELECT version()" |  grep -oP '(?<=PostgreSQL).*(?=on)'`
+CURRENT_VERSION=`PGPASSWORD=$MYPASS $PSQLCL -c "SELECT version()" |  awk '/PostgreSQL/{print $2}'`
 
 #Current Major version
-CURR_MAJOR_VERSION=`PGPASSWORD=$MYPASS $PSQLCL -c "Select version();" | grep -oP '(?<=PostgreSQL).*(?=on)' |grep -oP '.*?(?=\.)'`
+CURR_MAJOR_VERSION=`PGPASSWORD=$MYPASS $PSQLCL -c "Select version();" | awk '/PostgreSQL/{print $2}' | cut -d. -f1`
 
 #Minor version
 MAX_MINOR_VERSION=`aws rds describe-db-engine-versions --engine $DBTYPE --engine-version $CURRENT_VERSION --query "DBEngineVersions[*].ValidUpgradeTarget[].[EngineVersion,IsMajorVersionUpgrade]" --output text | grep False |sort -n | tail -1| awk '{print $1}'`
 
 #Max major version
-MAX_MAJOR_VERSION=`aws rds describe-db-engine-versions --engine $DBTYPE --query "DBEngineVersions[].EngineVersion" --output text | awk '{print $NF}'|grep -oP '.*?(?=\.)'`
+MAX_MAJOR_VERSION=`aws rds describe-db-engine-versions --engine $DBTYPE --query "DBEngineVersions[].EngineVersion" --output text | awk '{print $NF}'|cut -d. -f1`
 
 SCORE3=`aws rds describe-db-instances --db-instance-identifier $RDSNAME  --query '*[].["StorageEncrypted"]' --output text`
 
