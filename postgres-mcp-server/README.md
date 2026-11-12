@@ -15,7 +15,7 @@ Instead of manually running SQL queries and interpreting results, ask your AI as
 - "Is my database ready for a major version upgrade?"
 - "Explain this slow query's execution plan"
 
-The MCP server runs 39 predefined, read-only diagnostic queries across 11 categories. No dynamic SQL, no writes, safe for production.
+The MCP server runs 49 predefined, read-only diagnostic queries across 12 categories. No dynamic SQL, no writes, safe for production.
 
 ## Security Model
 
@@ -134,12 +134,13 @@ Edit `.cursor/mcp.json` in your project root:
 
 | Tool | Description |
 |------|-------------|
-| `execute_health_query` | Run any of 39 predefined queries by category/ID |
+| `execute_health_query` | Run any of 49 predefined queries by category/ID |
 | `list_health_queries` | Show all available diagnostic queries |
 | `run_health_check` | Quick 5-query health triage |
+| `diagnose_autovacuum_xmin` | Autovacuum runs but dead tuples grow: finds what pins the xmin horizon (sessions, idle-in-transaction, Aurora reader `feedback_xmin`, slots, prepared transactions, `postgres_get_av_diag`) |
 | `explain_query` | EXPLAIN plan for SELECT queries (never executes) |
 
-## Diagnostic Categories (39 queries)
+## Diagnostic Categories (49 queries)
 
 | Category | Queries | Covers |
 |----------|---------|--------|
@@ -154,6 +155,7 @@ Edit `.cursor/mcp.json` in your project root:
 | 9. Composite Health | 9.1 | Aggregated health metrics |
 | 10. Pre-Upgrade Checks | 10.1-10.8 | Upgrade blockers, extensions, reg* types |
 | 11. Extended Health | 11.1-11.6 | No-PK tables, invalid indexes, XID age |
+| 12. Autovacuum and XMin Horizon | 12.1-12.10 | Vacuum progress, xmin holders, idle-in-transaction, Aurora reader feedback_xmin, slots, prepared xacts, av_diag |
 
 ## Database User Setup
 
@@ -163,6 +165,7 @@ Create a read-only user for the MCP server:
 -- PostgreSQL 14+
 CREATE USER mcp_readonly WITH PASSWORD 'your_secure_password';
 GRANT pg_read_all_data TO mcp_readonly;
+GRANT pg_monitor TO mcp_readonly;  -- needed to see other sessions' xmin and query text (Category 12)
 
 -- PostgreSQL 13 and earlier
 CREATE USER mcp_readonly WITH PASSWORD 'your_secure_password';
@@ -170,6 +173,7 @@ GRANT CONNECT ON DATABASE mydb TO mcp_readonly;
 GRANT USAGE ON SCHEMA public TO mcp_readonly;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO mcp_readonly;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO mcp_readonly;
+GRANT pg_monitor TO mcp_readonly;
 ```
 
 ## How It Differs from AWS Labs postgres-mcp-server

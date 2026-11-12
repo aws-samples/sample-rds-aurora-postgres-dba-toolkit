@@ -31,10 +31,12 @@ mcp = FastMCP(
     "postgresql-dba-mcp",
     instructions=(
         "Read-only diagnostic access to PostgreSQL instances (RDS, Aurora, or self-managed). "
-        "Provides tools for running predefined health check queries across 11 categories: "
+        "Provides tools for running predefined health check queries across 12 categories: "
         "server info, system configuration, current activity, replication, storage/bloat, "
         "performance (pg_stat_statements), vacuum/maintenance, index optimization, "
-        "composite health scoring, pre-upgrade checks, and extended health checks. "
+        "composite health scoring, pre-upgrade checks, extended health checks, and "
+        "autovacuum/xmin-horizon diagnostics (use diagnose_autovacuum_xmin when dead tuples "
+        "grow while autovacuum keeps running). "
         "Only allowlisted queries are permitted.\n\n"
         "CRITICAL SAFETY RULES:\n"
         "1. NEVER recommend VACUUM FULL. Use pg_repack instead.\n"
@@ -626,6 +628,123 @@ QUERY_ALLOWLIST["11"] = {
 
 
 # ============================================================
+# Category 12: Autovacuum / XMin Horizon Diagnostics
+# Finds what is pinning the xmin horizon (vacuum runs but removes nothing).
+# ============================================================
+
+QUERY_ALLOWLIST["12"] = {
+    "_category": "Autovacuum and XMin Horizon",
+    "12.1": {
+        "name": "Dead Tuples vs Last Autovacuum",
+        "sql": (
+            "SELECT schemaname, relname, n_live_tup, n_dead_tup, "
+            "round(n_dead_tup::numeric / NULLIF(n_live_tup, 0), 4) AS dead_ratio, "
+            "last_autovacuum, now() - last_autovacuum AS since_last_autovacuum, "
+            "autovacuum_count "
+            "FROM pg_stat_user_tables "
+            "ORDER BY n_dead_tup DESC LIMIT 10"
+        ),
+    },
+    "12.2": {
+        "name": "Vacuum In Progress Now",
+        "sql": (
+            "SELECT p.pid, now() - a.xact_start AS vacuum_runtime, "
+            "p.relid::regclass AS table_name, p.phase, "
+            "p.heap_blks_scanned, p.heap_blks_vacuumed, p.heap_blks_total, "
+            "p.index_vacuum_count, "
+            "CASE WHEN a.query ILIKE 'autovacuum:%' THEN 'autovacuum' ELSE 'manual' END AS kind "
+            "FROM pg_stat_progress_vacuum p "
+            "JOIN pg_stat_activity a ON a.pid = p.pid "
+            "ORDER BY vacuum_runtime DESC NULLS LAST"
+        ),
+    },
+    "12.3": {
+        "name": "XMin Holders: Sessions by Transaction Age",
+        "sql": (
+            "SELECT pid, usename, application_name, client_addr, state, "
+            "now() - xact_start AS xact_age, "
+            "now() - state_change AS in_state_for, "
+            "age(backend_xmin) AS xmin_age_txns, "
+            "wait_event_type, wait_event, "
+            "left(query, 120) AS query_snippet "
+            "FROM pg_stat_activity "
+            "WHERE backend_xmin IS NOT NULL OR backend_xid IS NOT NULL "
+            "ORDER BY greatest(age(backend_xmin), age(backend_xid)) DESC NULLS LAST LIMIT 30"
+        ),
+    },
+    "12.4": {
+        "name": "Idle-in-Transaction Sessions",
+        "sql": (
+            "SELECT count(*) AS idle_in_tx_sessions, "
+            "max(now() - xact_start) AS oldest_xact_age, "
+            "max(now() - state_change) AS longest_idle, "
+            "current_setting('idle_in_transaction_session_timeout') AS idle_in_tx_timeout "
+            "FROM pg_stat_activity "
+            "WHERE state IN ('idle in transaction', 'idle in transaction (aborted)')"
+        ),
+    },
+    "12.5": {
+        "name": "Aurora Reader feedback_xmin (Aurora only, run on writer)",
+        "sql": (
+            "SELECT server_id, "
+            "CASE WHEN session_id = 'MASTER_SESSION_ID' THEN 'writer' ELSE 'reader' END AS role, "
+            "feedback_xmin, active_txns, replica_lag_in_msec, last_update_timestamp "
+            "FROM aurora_replica_status() "
+            "ORDER BY feedback_xmin ASC NULLS LAST"
+        ),
+    },
+    "12.6": {
+        "name": "Replication Slots Holding XMin",
+        "sql": (
+            "SELECT slot_name, slot_type, active, xmin, catalog_xmin, "
+            "age(xmin) AS xmin_age_txns, age(catalog_xmin) AS catalog_xmin_age_txns "
+            "FROM pg_replication_slots "
+            "ORDER BY greatest(age(xmin), age(catalog_xmin)) DESC NULLS LAST"
+        ),
+    },
+    "12.7": {
+        "name": "Prepared Transactions Holding XMin",
+        "sql": (
+            "SELECT gid, prepared, now() - prepared AS open_for, owner, database, "
+            "age(transaction) AS xmin_age_txns "
+            "FROM pg_prepared_xacts ORDER BY prepared"
+        ),
+    },
+    "12.8": {
+        "name": "XMin Horizon Summary (Oldest Holder by Source)",
+        "sql": (
+            "SELECT 'session' AS source, max(age(backend_xmin)) AS oldest_xmin_age_txns "
+            "FROM pg_stat_activity WHERE backend_xmin IS NOT NULL "
+            "UNION ALL "
+            "SELECT 'replication_slot', max(greatest(age(xmin), age(catalog_xmin))) "
+            "FROM pg_replication_slots "
+            "UNION ALL "
+            "SELECT 'prepared_xact', max(age(transaction)) FROM pg_prepared_xacts "
+            "ORDER BY oldest_xmin_age_txns DESC NULLS LAST"
+        ),
+    },
+    "12.9": {
+        "name": "RDS Autovacuum Diagnostic (rds_tools.postgres_get_av_diag)",
+        "sql": "SELECT * FROM rds_tools.postgres_get_av_diag()",
+    },
+    "12.10": {
+        "name": "Autovacuum and Logging Settings",
+        "sql": (
+            "SELECT name, setting, unit, source FROM pg_settings "
+            "WHERE name IN ("
+            "'autovacuum','autovacuum_max_workers','autovacuum_naptime',"
+            "'autovacuum_vacuum_threshold','autovacuum_vacuum_scale_factor',"
+            "'autovacuum_vacuum_insert_threshold','autovacuum_vacuum_cost_delay',"
+            "'autovacuum_vacuum_cost_limit','autovacuum_work_mem','maintenance_work_mem',"
+            "'vacuum_cost_limit','idle_in_transaction_session_timeout','statement_timeout',"
+            "'old_snapshot_threshold','log_min_duration_statement','log_autovacuum_min_duration'"
+            ") ORDER BY name"
+        ),
+    },
+}
+
+
+# ============================================================
 # Tool Definitions
 # ============================================================
 
@@ -649,7 +768,8 @@ def list_health_queries() -> str:
         cat_name = cat.get("_category", f"Category {cat_id}")
         lines.append(f"\n## Category {cat_id}: {cat_name}")
         for qid in sorted(
-            [k for k in cat if not k.startswith("_")], key=lambda x: float(x)
+            [k for k in cat if not k.startswith("_")],
+            key=lambda x: tuple(int(p) for p in x.split(".")),
         ):
             lines.append(f"  - **{qid}**: {cat[qid]['name']}")
     return "\n".join(lines)
@@ -694,6 +814,69 @@ def run_health_check() -> str:
     except Exception as e:
         return f"Error running health check: {str(e)}"
     return "\n\n---\n\n".join(results)
+
+
+@mcp.tool()
+def diagnose_autovacuum_xmin() -> str:
+    """
+    Diagnose autovacuum that runs but cannot remove dead tuples (pinned xmin horizon).
+    Runs Category 12 checks: dead tuples, live vacuum progress, session xmin holders,
+    idle-in-transaction, Aurora reader feedback_xmin, replication slots, prepared
+    transactions, horizon summary, rds_tools.postgres_get_av_diag(), and settings.
+    Run it on the WRITER during an incident. Then point the server at a READER
+    endpoint and run execute_health_query('12.3') to find the reader query that
+    holds feedback_xmin. Read-only: never cancels, terminates or creates anything.
+    """
+    query_ids = ["12.8", "12.1", "12.2", "12.3", "12.4", "12.5",
+                 "12.6", "12.7", "12.9", "12.10"]
+    flat = _flat_queries()
+    sections = []
+    try:
+        conn = _get_connection()
+    except Exception as e:
+        return f"Error connecting: {str(e)}"
+    try:
+        has_rds_tools = bool(_execute_query(
+            conn, "SELECT 1 AS ok FROM pg_extension WHERE extname = 'rds_tools'"))
+        is_aurora = bool(_execute_query(
+            conn, "SELECT 1 AS ok FROM pg_proc WHERE proname = 'aurora_replica_status'"))
+        for qid in query_ids:
+            query = flat[qid]
+            title = f"{qid}: {query['name']}"
+            if qid == "12.5" and not is_aurora:
+                sections.append(f"**{title}**: Skipped (not Aurora PostgreSQL).")
+                continue
+            if qid == "12.9" and not has_rds_tools:
+                sections.append(
+                    f"**{title}**: Skipped (rds_tools extension not installed). "
+                    "A DBA can run CREATE EXTENSION rds_tools; to enable it. "
+                    "Note: it reports only when the oldest XID age passes ~500 million."
+                )
+                continue
+            try:
+                rows = _execute_query(conn, query["sql"])
+                sections.append(_format_results_table(rows, title))
+            except Exception as e:
+                sections.append(f"**{title}**: Error: {str(e)}")
+                # Reset the connection so one failed query does not block the rest.
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+                conn = _get_connection()
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+    guide = (
+        "**How to read this:** If dead tuples climb (12.1) while autovacuum ran seconds "
+        "ago (12.1/12.2), vacuum is blocked from removing rows. The largest age in 12.8 "
+        "names the source. On Aurora, a reader with a low, non-advancing feedback_xmin "
+        "(12.5) pins the writer; run 12.3 on that reader to find the query. "
+        "Capture every 15-30s during the incident window: the evidence disappears when it self-resolves."
+    )
+    return guide + "\n\n---\n\n" + "\n\n---\n\n".join(sections)
 
 
 @mcp.tool()
