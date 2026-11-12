@@ -1,6 +1,6 @@
 # Amazon RDS & Aurora PostgreSQL DBA Toolkit
 
-A collection of diagnostic scripts for Amazon RDS for PostgreSQL and Amazon Aurora PostgreSQL. These tools help database administrators, developers, and site reliability engineers assess database health, identify performance issues, and validate upgrade readiness.
+A collection of diagnostic scripts for Amazon RDS for PostgreSQL and Amazon Aurora PostgreSQL. These tools help database administrators, developers, and site reliability engineers assess database health, identify performance issues, and validate upgrade readiness. To complement these scripts with managed, continuous query monitoring, see [Configuring your database to monitor slow SQL queries with Database Insights for Amazon Aurora](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_DatabaseInsights.SlowSQL.html).
 
 > **Important:** These tools are sample code provided for educational and diagnostic purposes. Validate in a non-production environment first. Review all output before making changes to production databases.
 
